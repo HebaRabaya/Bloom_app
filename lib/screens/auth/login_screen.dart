@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/auth_service.dart';
 import '../admin/admin_main_screen.dart';
-import '../ profile/profile_screen.dart';
+import '../user/user_main_screen.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -119,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => const ProfileScreen(),
+            builder: (_) => const UserMainScreen(),
           ),
         );
       }

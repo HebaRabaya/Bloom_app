@@ -4,14 +4,17 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../models/order_model.dart';
 import '../../services/order_service.dart';
 
-class OrdersScreen extends StatelessWidget {
-  OrdersScreen({super.key});
+class MyOrdersScreen
+    extends StatelessWidget {
+  MyOrdersScreen({super.key});
 
   final OrderService _orderService =
   OrderService();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+      BuildContext context,
+      ) {
     return Scaffold(
       backgroundColor:
       const Color(0xFFF9F4F1),
@@ -19,41 +22,32 @@ class OrdersScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor:
         Colors.transparent,
-
         elevation: 0,
-
         centerTitle: true,
 
         title: Text(
-          'Orders',
-
+          'My Orders',
           style:
           GoogleFonts.playfairDisplay(
-            fontSize: 25,
+            fontSize: 24,
             fontWeight:
             FontWeight.w600,
             color:
-            const Color(
-              0xFF4B3439,
-            ),
+            const Color(0xFF4B3439),
           ),
         ),
       ),
 
-      // ========================================================
-      // All Orders Stream
-      // ========================================================
-
-      body:
-      StreamBuilder<List<OrderModel>>(
+      body: StreamBuilder<
+          List<OrderModel>>(
         stream:
-        _orderService.getAllOrders(),
+        _orderService.getMyOrders(),
 
         builder:
             (context, snapshot) {
-          // ====================================================
+          // ==================================================
           // Error
-          // ====================================================
+          // ==================================================
 
           if (snapshot.hasError) {
             return _buildMessage(
@@ -62,13 +56,13 @@ class OrdersScreen extends StatelessWidget {
               title:
               'Something went wrong',
               subtitle:
-              'We could not load orders.',
+              'We could not load your orders.',
             );
           }
 
-          // ====================================================
+          // ==================================================
           // Loading
-          // ====================================================
+          // ==================================================
 
           if (!snapshot.hasData) {
             return const Center(
@@ -83,9 +77,9 @@ class OrdersScreen extends StatelessWidget {
           final orders =
           snapshot.data!;
 
-          // ====================================================
+          // ==================================================
           // Empty
-          // ====================================================
+          // ==================================================
 
           if (orders.isEmpty) {
             return _buildMessage(
@@ -94,13 +88,13 @@ class OrdersScreen extends StatelessWidget {
               title:
               'No orders yet',
               subtitle:
-              'Orders from users will appear here.',
+              'Your orders will appear here 🌷',
             );
           }
 
-          // ====================================================
-          // Orders List
-          // ====================================================
+          // ==================================================
+          // Orders
+          // ==================================================
 
           return ListView.separated(
             padding:
@@ -122,12 +116,9 @@ class OrdersScreen extends StatelessWidget {
 
             itemBuilder:
                 (context, index) {
-              final order =
-              orders[index];
-
               return _buildOrderCard(
                 context,
-                order,
+                orders[index],
               );
             },
           );
@@ -148,22 +139,18 @@ class OrdersScreen extends StatelessWidget {
       padding:
       const EdgeInsets.all(14),
 
-      decoration:
-      BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-
         borderRadius:
         BorderRadius.circular(20),
 
         boxShadow: [
           BoxShadow(
-            color:
-            Colors.black.withValues(
+            color: Colors.black
+                .withValues(
               alpha: 0.04,
             ),
-
             blurRadius: 14,
-
             offset:
             const Offset(0, 5),
           ),
@@ -171,31 +158,27 @@ class OrdersScreen extends StatelessWidget {
       ),
 
       child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
-
         children: [
-          // ======================================================
-          // Product Info
-          // ======================================================
-
           Row(
             crossAxisAlignment:
             CrossAxisAlignment.start,
 
             children: [
+              // ==================================================
+              // Product Image
+              // ==================================================
+
               ClipRRect(
                 borderRadius:
-                BorderRadius.circular(15),
+                BorderRadius.circular(
+                    15),
 
                 child: SizedBox(
                   width: 90,
                   height: 90,
 
-                  child:
-                  Image.network(
+                  child: Image.network(
                     order.productImage,
-
                     fit: BoxFit.cover,
 
                     errorBuilder:
@@ -207,18 +190,14 @@ class OrdersScreen extends StatelessWidget {
                       return Container(
                         color:
                         const Color(
-                          0xFFF4E8E5,
-                        ),
+                            0xFFF4E8E5),
 
                         child:
                         const Icon(
                           Icons
                               .image_not_supported_outlined,
-
-                          color:
-                          Color(
-                            0xFFB86F7B,
-                          ),
+                          color: Color(
+                              0xFFB86F7B),
                         ),
                       );
                     },
@@ -230,6 +209,10 @@ class OrdersScreen extends StatelessWidget {
                 width: 14,
               ),
 
+              // ==================================================
+              // Product Info
+              // ==================================================
+
               Expanded(
                 child: Column(
                   crossAxisAlignment:
@@ -238,31 +221,28 @@ class OrdersScreen extends StatelessWidget {
                   children: [
                     Text(
                       order.productName,
-
                       maxLines: 2,
-
                       overflow:
-                      TextOverflow.ellipsis,
+                      TextOverflow
+                          .ellipsis,
 
                       style:
                       GoogleFonts.dmSans(
-                        fontSize: 17,
+                        fontSize: 16,
                         fontWeight:
                         FontWeight.w700,
                         color:
                         const Color(
-                          0xFF4B3439,
-                        ),
+                            0xFF4B3439),
                       ),
                     ),
 
                     const SizedBox(
-                      height: 8,
+                      height: 7,
                     ),
 
                     Text(
                       '\$${order.productPrice}',
-
                       style:
                       GoogleFonts.dmSans(
                         fontSize: 15,
@@ -270,13 +250,12 @@ class OrdersScreen extends StatelessWidget {
                         FontWeight.w700,
                         color:
                         const Color(
-                          0xFFB86F7B,
-                        ),
+                            0xFFB86F7B),
                       ),
                     ),
 
                     const SizedBox(
-                      height: 10,
+                      height: 7,
                     ),
 
                     _buildStatusBadge(),
@@ -287,81 +266,56 @@ class OrdersScreen extends StatelessWidget {
           ),
 
           const SizedBox(
-            height: 18,
+            height: 14,
           ),
 
-          const Divider(),
-
-          const SizedBox(
-            height: 10,
-          ),
-
-          // ======================================================
-          // User Name
-          // ======================================================
-
-          _buildInfoRow(
-            icon:
-            Icons.person_outline,
-            title:
-            'Customer',
-            value:
-            order.userName.isEmpty
-                ? 'Unknown User'
-                : order.userName,
-          ),
-
-          const SizedBox(
-            height: 10,
-          ),
-
-          // ======================================================
-          // User Phone
-          // ======================================================
-
-          _buildInfoRow(
-            icon:
-            Icons.phone_outlined,
-            title:
-            'Phone',
-            value:
-            order.userPhone.isEmpty
-                ? 'Not available'
-                : order.userPhone,
-          ),
-
-          const SizedBox(
-            height: 10,
-          ),
-
-          // ======================================================
+          // ==================================================
           // Date
-          // ======================================================
+          // ==================================================
 
-          _buildInfoRow(
-            icon:
-            Icons.calendar_today_outlined,
-            title:
-            'Ordered',
-            value:
-            _formatDate(
-              order.createdAt,
-            ),
+          Row(
+            children: [
+              const Icon(
+                Icons
+                    .calendar_today_outlined,
+                size: 16,
+                color:
+                Color(0xFF92797E),
+              ),
+
+              const SizedBox(
+                width: 7,
+              ),
+
+              Expanded(
+                child: Text(
+                  _formatDate(
+                    order.createdAt,
+                  ),
+
+                  style:
+                  GoogleFonts.dmSans(
+                    fontSize: 12,
+                    color:
+                    const Color(
+                        0xFF92797E),
+                  ),
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(
-            height: 16,
+            height: 12,
           ),
 
-          // ======================================================
-          // Cancel Order
-          // ======================================================
+          // ==================================================
+          // Cancel
+          // ==================================================
 
           SizedBox(
-            width:
-            double.infinity,
-
-            height: 46,
+            width: double.infinity,
+            height: 45,
 
             child:
             OutlinedButton.icon(
@@ -372,15 +326,14 @@ class OrdersScreen extends StatelessWidget {
                 );
               },
 
-              icon:
-              const Icon(
-                Icons.cancel_outlined,
-                size: 19,
+              icon: const Icon(
+                Icons
+                    .cancel_outlined,
+                size: 18,
               ),
 
               label: Text(
                 'Cancel Order',
-
                 style:
                 GoogleFonts.dmSans(
                   fontWeight:
@@ -392,23 +345,19 @@ class OrdersScreen extends StatelessWidget {
               OutlinedButton.styleFrom(
                 foregroundColor:
                 const Color(
-                  0xFF9E5967,
-                ),
+                    0xFF9E5967),
 
                 side:
                 const BorderSide(
                   color:
-                  Color(
-                    0xFFE1BFC4,
-                  ),
+                  Color(0xFFE1BFC4),
                 ),
 
                 shape:
                 RoundedRectangleBorder(
                   borderRadius:
                   BorderRadius.circular(
-                    14,
-                  ),
+                      14),
                 ),
               ),
             ),
@@ -426,93 +375,28 @@ class OrdersScreen extends StatelessWidget {
     return Container(
       padding:
       const EdgeInsets.symmetric(
-        horizontal: 10,
+        horizontal: 9,
         vertical: 5,
       ),
 
       decoration:
       BoxDecoration(
         color:
-        const Color(
-          0xFFE8F1E6,
-        ),
-
+        const Color(0xFFE8F1E6),
         borderRadius:
         BorderRadius.circular(20),
       ),
 
       child: Text(
         'Order placed',
-
         style:
         GoogleFonts.dmSans(
           fontSize: 11,
           fontWeight:
           FontWeight.w600,
-          color:
-          Colors.green,
+          color: Colors.green,
         ),
       ),
-    );
-  }
-
-  // ============================================================
-  // Info Row
-  // ============================================================
-
-  Widget _buildInfoRow({
-    required IconData icon,
-    required String title,
-    required String value,
-  }) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 18,
-          color:
-          const Color(
-            0xFFB86F7B,
-          ),
-        ),
-
-        const SizedBox(
-          width: 9,
-        ),
-
-        Text(
-          '$title: ',
-
-          style:
-          GoogleFonts.dmSans(
-            fontSize: 13,
-            fontWeight:
-            FontWeight.w700,
-            color:
-            const Color(
-              0xFF4B3439,
-            ),
-          ),
-        ),
-
-        Expanded(
-          child: Text(
-            value,
-
-            overflow:
-            TextOverflow.ellipsis,
-
-            style:
-            GoogleFonts.dmSans(
-              fontSize: 13,
-              color:
-              const Color(
-                0xFF7D696D,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -531,21 +415,17 @@ class OrdersScreen extends StatelessWidget {
       builder: (context) {
         return AlertDialog(
           backgroundColor:
-          const Color(
-            0xFFFFFAF8,
-          ),
+          const Color(0xFFFFFAF8),
 
           shape:
           RoundedRectangleBorder(
             borderRadius:
             BorderRadius.circular(
-              24,
-            ),
+                24),
           ),
 
           title: Text(
             'Cancel Order?',
-
             style:
             GoogleFonts.playfairDisplay(
               fontSize: 23,
@@ -553,8 +433,7 @@ class OrdersScreen extends StatelessWidget {
               FontWeight.w600,
               color:
               const Color(
-                0xFF4B3439,
-              ),
+                  0xFF4B3439),
             ),
           ),
 
@@ -565,8 +444,7 @@ class OrdersScreen extends StatelessWidget {
             GoogleFonts.dmSans(
               color:
               const Color(
-                0xFF7D696D,
-              ),
+                  0xFF7D696D),
             ),
           ),
 
@@ -597,9 +475,7 @@ class OrdersScreen extends StatelessWidget {
               ElevatedButton.styleFrom(
                 backgroundColor:
                 const Color(
-                  0xFFB86F7B,
-                ),
-
+                    0xFFB86F7B),
                 foregroundColor:
                 Colors.white,
               ),
@@ -620,7 +496,7 @@ class OrdersScreen extends StatelessWidget {
 
     try {
       await _orderService
-          .cancelOrderByAdmin(
+          .cancelOrder(
         order: order,
       );
 
@@ -628,12 +504,10 @@ class OrdersScreen extends StatelessWidget {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
         const SnackBar(
-          content:
-          Text(
+          content: Text(
             'Order cancelled successfully.',
           ),
         ),
@@ -643,12 +517,10 @@ class OrdersScreen extends StatelessWidget {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
         const SnackBar(
-          content:
-          Text(
+          content: Text(
             'Unable to cancel order.',
           ),
         ),
@@ -672,17 +544,13 @@ class OrdersScreen extends StatelessWidget {
       timestamp.toDate();
 
       final day =
-      date.day
-          .toString()
-          .padLeft(
+      date.day.toString().padLeft(
         2,
         '0',
       );
 
       final month =
-      date.month
-          .toString()
-          .padLeft(
+      date.month.toString().padLeft(
         2,
         '0',
       );
@@ -691,29 +559,25 @@ class OrdersScreen extends StatelessWidget {
       date.year.toString();
 
       final hour =
-      date.hour
-          .toString()
-          .padLeft(
+      date.hour.toString().padLeft(
         2,
         '0',
       );
 
       final minute =
-      date.minute
-          .toString()
-          .padLeft(
+      date.minute.toString().padLeft(
         2,
         '0',
       );
 
-      return '$day/$month/$year  $hour:$minute';
+      return '$day/$month/$year $hour:$minute';
     } catch (e) {
       return 'Date unavailable';
     }
   }
 
   // ============================================================
-  // Empty / Error Message
+  // Empty / Error
   // ============================================================
 
   Widget _buildMessage({
@@ -735,9 +599,7 @@ class OrdersScreen extends StatelessWidget {
               icon,
               size: 70,
               color:
-              const Color(
-                0xFFB86F7B,
-              ),
+              const Color(0xFFB86F7B),
             ),
 
             const SizedBox(
@@ -746,7 +608,6 @@ class OrdersScreen extends StatelessWidget {
 
             Text(
               title,
-
               textAlign:
               TextAlign.center,
 
@@ -757,8 +618,7 @@ class OrdersScreen extends StatelessWidget {
                 FontWeight.w600,
                 color:
                 const Color(
-                  0xFF4B3439,
-                ),
+                    0xFF4B3439),
               ),
             ),
 
@@ -768,7 +628,6 @@ class OrdersScreen extends StatelessWidget {
 
             Text(
               subtitle,
-
               textAlign:
               TextAlign.center,
 
@@ -777,8 +636,7 @@ class OrdersScreen extends StatelessWidget {
                 fontSize: 13,
                 color:
                 const Color(
-                  0xFF92797E,
-                ),
+                    0xFF92797E),
               ),
             ),
           ],

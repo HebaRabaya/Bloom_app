@@ -22,7 +22,7 @@ class _AdminMainScreenState
   // Admin Screens
   // ============================================================
 
-  final List<Widget> _screens = const [
+  final List<Widget> _screens =  [
     AdminHomeScreen(),
     AddProductScreen(),
     CategoriesScreen(),
