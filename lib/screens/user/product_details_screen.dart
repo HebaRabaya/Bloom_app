@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../models/product_model.dart';
-import '../../services/order_service.dart';
+import '../../services/cart_service.dart';
 
 class ProductDetailsScreen
     extends StatefulWidget {
+
   final ProductModel product;
 
   const ProductDetailsScreen({
@@ -14,26 +15,34 @@ class ProductDetailsScreen
   });
 
   @override
-  State<ProductDetailsScreen>
-  createState() =>
+  State<ProductDetailsScreen> createState() =>
       _ProductDetailsScreenState();
 }
 
 class _ProductDetailsScreenState
     extends State<ProductDetailsScreen> {
-  final OrderService _orderService =
-  OrderService();
-
-  bool _isOrdering = false;
 
   // ============================================================
-  // Order Product
+  // Cart Service
   // ============================================================
 
-  Future<void> _orderProduct() async {
-    if (_isOrdering) {
+  final CartService _cartService =
+  CartService();
+
+  bool _isAddingToCart = false;
+
+  // ============================================================
+  // Add Product To Cart
+  // ============================================================
+
+  Future<void> _addToCart() async {
+    if (_isAddingToCart) {
       return;
     }
+
+    // ----------------------------------------------------------
+    // التأكد من وجود كمية
+    // ----------------------------------------------------------
 
     if (widget.product.quantity <= 0) {
       _showMessage(
@@ -43,28 +52,23 @@ class _ProductDetailsScreenState
     }
 
     setState(() {
-      _isOrdering = true;
+      _isAddingToCart = true;
     });
 
     try {
-      await _orderService.createOrder(
-        productId: widget.product.id,
+      await _cartService.addToCart(
+        productId:
+        widget.product.id,
       );
 
       if (!mounted) {
         return;
       }
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Order placed successfully 🌷',
-          ),
-        ),
+      _showMessage(
+        'Product added to cart 🌷',
       );
 
-      Navigator.pop(context);
     } catch (e) {
       if (!mounted) {
         return;
@@ -74,23 +78,31 @@ class _ProductDetailsScreenState
       e.toString().toLowerCase();
 
       String message =
-          'Unable to place order.';
+          'Unable to add product to cart.';
 
       if (error.contains(
-          'out of stock')) {
+        'out of stock',
+      )) {
         message =
         'This product is out of stock.';
       } else if (error.contains(
-          'product not found')) {
+        'maximum available',
+      )) {
+        message =
+        'You reached the available quantity.';
+      } else if (error.contains(
+        'product not found',
+      )) {
         message =
         'This product is no longer available.';
       }
 
       _showMessage(message);
+
     } finally {
       if (mounted) {
         setState(() {
-          _isOrdering = false;
+          _isAddingToCart = false;
         });
       }
     }
@@ -107,12 +119,16 @@ class _ProductDetailsScreenState
         .showSnackBar(
       SnackBar(
         content: Text(message),
+
         behavior:
         SnackBarBehavior.floating,
+
         backgroundColor:
         const Color(0xFF5A3D43),
+
         margin:
         const EdgeInsets.all(16),
+
         shape:
         RoundedRectangleBorder(
           borderRadius:
@@ -143,6 +159,7 @@ class _ProductDetailsScreenState
       appBar: AppBar(
         backgroundColor:
         Colors.transparent,
+
         elevation: 0,
 
         leading: IconButton(
@@ -160,6 +177,7 @@ class _ProductDetailsScreenState
 
         title: Text(
           'Product Details',
+
           style:
           GoogleFonts.playfairDisplay(
             fontSize: 23,
@@ -188,7 +206,7 @@ class _ProductDetailsScreenState
 
           children: [
             // ==================================================
-            // Image
+            // Product Image
             // ==================================================
 
             ClipRRect(
@@ -201,10 +219,10 @@ class _ProductDetailsScreenState
 
                 child: Image.network(
                   product.imageUrl,
+
                   fit: BoxFit.cover,
 
-                  errorBuilder:
-                      (
+                  errorBuilder: (
                       context,
                       error,
                       stackTrace,
@@ -218,8 +236,10 @@ class _ProductDetailsScreenState
                           Icons
                               .image_not_supported_outlined,
                           size: 60,
-                          color: Color(
-                              0xFFB86F7B),
+                          color:
+                          Color(
+                            0xFFB86F7B,
+                          ),
                         ),
                       ),
                     );
@@ -248,14 +268,18 @@ class _ProductDetailsScreenState
               BoxDecoration(
                 color:
                 const Color(
-                    0xFFE8D1D4),
+                  0xFFE8D1D4,
+                ),
+
                 borderRadius:
                 BorderRadius.circular(
-                    20),
+                  20,
+                ),
               ),
 
               child: Text(
                 product.category,
+
                 style:
                 GoogleFonts.dmSans(
                   fontSize: 12,
@@ -263,7 +287,8 @@ class _ProductDetailsScreenState
                   FontWeight.w600,
                   color:
                   const Color(
-                      0xFF8C626B),
+                    0xFF8C626B,
+                  ),
                 ),
               ),
             ),
@@ -284,6 +309,7 @@ class _ProductDetailsScreenState
                 Expanded(
                   child: Text(
                     product.name,
+
                     style: GoogleFonts
                         .playfairDisplay(
                       fontSize: 30,
@@ -291,7 +317,8 @@ class _ProductDetailsScreenState
                       FontWeight.w600,
                       color:
                       const Color(
-                          0xFF4B3439),
+                        0xFF4B3439,
+                      ),
                     ),
                   ),
                 ),
@@ -302,6 +329,7 @@ class _ProductDetailsScreenState
 
                 Text(
                   '\$${product.price}',
+
                   style:
                   GoogleFonts.dmSans(
                     fontSize: 20,
@@ -309,7 +337,8 @@ class _ProductDetailsScreenState
                     FontWeight.w700,
                     color:
                     const Color(
-                        0xFFB86F7B),
+                      0xFFB86F7B,
+                    ),
                   ),
                 ),
               ],
@@ -325,6 +354,7 @@ class _ProductDetailsScreenState
 
             Text(
               'About this product',
+
               style:
               GoogleFonts.playfairDisplay(
                 fontSize: 21,
@@ -332,7 +362,8 @@ class _ProductDetailsScreenState
                 FontWeight.w600,
                 color:
                 const Color(
-                    0xFF4B3439),
+                  0xFF4B3439,
+                ),
               ),
             ),
 
@@ -342,13 +373,15 @@ class _ProductDetailsScreenState
 
             Text(
               product.description,
+
               style:
               GoogleFonts.dmSans(
                 fontSize: 14,
                 height: 1.6,
                 color:
                 const Color(
-                    0xFF7D696D),
+                  0xFF7D696D,
+                ),
               ),
             ),
 
@@ -365,19 +398,23 @@ class _ProductDetailsScreenState
 
               padding:
               const EdgeInsets.all(
-                  16),
+                16,
+              ),
 
               decoration:
               BoxDecoration(
                 color: isOutOfStock
                     ? const Color(
-                    0xFFF4DEDE)
+                  0xFFF4DEDE,
+                )
                     : const Color(
-                    0xFFE8F1E6),
+                  0xFFE8F1E6,
+                ),
 
                 borderRadius:
                 BorderRadius.circular(
-                    18),
+                  18,
+                ),
               ),
 
               child: Row(
@@ -425,33 +462,34 @@ class _ProductDetailsScreenState
             ),
 
             // ==================================================
-            // Order Button
+            // Add To Cart Button
             // ==================================================
 
             SizedBox(
               width: double.infinity,
               height: 58,
 
-              child:
-              ElevatedButton(
+              child: ElevatedButton(
                 onPressed:
                 isOutOfStock ||
-                    _isOrdering
+                    _isAddingToCart
                     ? null
-                    : _orderProduct,
+                    : _addToCart,
 
                 style: ElevatedButton
                     .styleFrom(
                   backgroundColor:
                   const Color(
-                      0xFFB86F7B),
+                    0xFFB86F7B,
+                  ),
 
                   foregroundColor:
                   Colors.white,
 
                   disabledBackgroundColor:
                   const Color(
-                      0xFFD8C9C9),
+                    0xFFD8C9C9,
+                  ),
 
                   elevation: 0,
 
@@ -459,14 +497,16 @@ class _ProductDetailsScreenState
                   RoundedRectangleBorder(
                     borderRadius:
                     BorderRadius.circular(
-                        18),
+                      18,
+                    ),
                   ),
                 ),
 
-                child: _isOrdering
+                child: _isAddingToCart
                     ? const SizedBox(
                   width: 23,
                   height: 23,
+
                   child:
                   CircularProgressIndicator(
                     strokeWidth: 2,
@@ -477,7 +517,7 @@ class _ProductDetailsScreenState
                     : Text(
                   isOutOfStock
                       ? 'Out of Stock'
-                      : 'Order Now',
+                      : 'Add to Cart',
 
                   style:
                   GoogleFonts.dmSans(
