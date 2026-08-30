@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../ profile/profile_screen.dart';
+import 'cart_screen.dart';
 import 'favorites_screen.dart';
 import 'my_orders_screen.dart';
 import 'user_home_screen.dart';
 
 class UserMainScreen extends StatefulWidget {
-  const UserMainScreen({super.key});
+  const UserMainScreen({
+    super.key,
+  });
 
   @override
   State<UserMainScreen> createState() =>
@@ -15,6 +18,11 @@ class UserMainScreen extends StatefulWidget {
 
 class _UserMainScreenState
     extends State<UserMainScreen> {
+
+  // ============================================================
+  // Current Navigation Index
+  // ============================================================
+
   int _currentIndex = 0;
 
   // ============================================================
@@ -24,9 +32,14 @@ class _UserMainScreenState
   final List<Widget> _screens = [
     UserHomeScreen(),
     FavoritesScreen(),
+    CartScreen(),
     MyOrdersScreen(),
     ProfileScreen(),
   ];
+
+  // ============================================================
+  // Build
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -37,19 +50,26 @@ class _UserMainScreenState
       // Bottom Navigation
       // ========================================================
 
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
+      bottomNavigationBar:
+      NavigationBar(
+        selectedIndex:
+        _currentIndex,
 
         indicatorColor:
         const Color(0xFFE8D1D4),
 
-        onDestinationSelected: (index) {
+        onDestinationSelected:
+            (index) {
           setState(() {
             _currentIndex = index;
           });
         },
 
         destinations: const [
+          // ====================================================
+          // Home
+          // ====================================================
+
           NavigationDestination(
             icon: Icon(
               Icons.home_outlined,
@@ -59,6 +79,10 @@ class _UserMainScreenState
             ),
             label: 'Home',
           ),
+
+          // ====================================================
+          // Favorites
+          // ====================================================
 
           NavigationDestination(
             icon: Icon(
@@ -70,6 +94,24 @@ class _UserMainScreenState
             label: 'Favorites',
           ),
 
+          // ====================================================
+          // Cart
+          // ====================================================
+
+          NavigationDestination(
+            icon: Icon(
+              Icons.shopping_bag_outlined,
+            ),
+            selectedIcon: Icon(
+              Icons.shopping_bag,
+            ),
+            label: 'Cart',
+          ),
+
+          // ====================================================
+          // My Orders
+          // ====================================================
+
           NavigationDestination(
             icon: Icon(
               Icons.receipt_long_outlined,
@@ -79,6 +121,10 @@ class _UserMainScreenState
             ),
             label: 'My Orders',
           ),
+
+          // ====================================================
+          // Profile
+          // ====================================================
 
           NavigationDestination(
             icon: Icon(
