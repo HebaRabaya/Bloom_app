@@ -1,46 +1,72 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/onboarding/onboarding_screen.dart';
 
 Future<void> main() async {
-  // لازم قبل أي Firebase operation
+  // ============================================================
+  // Flutter Initialization
+  // ============================================================
+
   WidgetsFlutterBinding.ensureInitialized();
 
   // ============================================================
-  // Initialize Firebase
+  // Firebase Initialization
   // ============================================================
 
   await Firebase.initializeApp(
-    options:
-    DefaultFirebaseOptions
-        .currentPlatform,
+    options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // ============================================================
+  // Read Onboarding Status
+  // ============================================================
+
+  final preferences = await SharedPreferences.getInstance();
+
+  final hasSeenOnboarding =
+      preferences.getBool('hasSeenOnboarding') ?? false;
+
+  // ============================================================
+  // Run Application
+  // ============================================================
+
   runApp(
-    const BloomApp(),
+    MyApp(
+      hasSeenOnboarding: hasSeenOnboarding,
+    ),
   );
 }
 
-class BloomApp
-    extends StatelessWidget {
-  const BloomApp({
+// ================================================================
+// Main Application
+// ================================================================
+
+class MyApp extends StatelessWidget {
+  final bool hasSeenOnboarding;
+
+  const MyApp({
     super.key,
+    required this.hasSeenOnboarding,
   });
 
   @override
-  Widget build(
-      BuildContext context,
-      ) {
+  Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner:
-      false,
+      debugShowCheckedModeBanner: false,
 
       title: 'Bloom',
 
-      home:
-      const LoginScreen(),
+      // ==========================================================
+      // First Screen
+      // ==========================================================
+
+      home: hasSeenOnboarding
+          ? const LoginScreen()
+          : const OnboardingScreen(),
     );
   }
 }
