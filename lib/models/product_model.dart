@@ -18,7 +18,7 @@ class ProductModel {
   });
 
   // ============================================================
-  // تحويل بيانات Firestore إلى ProductModel
+  // Firestore -> ProductModel
   // ============================================================
 
   factory ProductModel.fromMap(
@@ -27,17 +27,29 @@ class ProductModel {
       ) {
     return ProductModel(
       id: id,
-      name: map['name'] ?? '',
-      price: (map['price'] ?? 0).toDouble(),
-      description: map['description'] ?? '',
-      category: map['category'] ?? '',
-      quantity: map['quantity'] ?? 0,
-      imageUrl: map['imageUrl'] ?? '',
+
+      name:
+      map['name']?.toString() ?? '',
+
+      price:
+      _parseDouble(map['price']),
+
+      description:
+      map['description']?.toString() ?? '',
+
+      category:
+      map['category']?.toString() ?? '',
+
+      quantity:
+      _parseInt(map['quantity']),
+
+      imageUrl:
+      map['imageUrl']?.toString() ?? '',
     );
   }
 
   // ============================================================
-  // تحويل ProductModel إلى Map
+  // ProductModel -> Map
   // ============================================================
 
   Map<String, dynamic> toMap() {
@@ -49,5 +61,39 @@ class ProductModel {
       'quantity': quantity,
       'imageUrl': imageUrl,
     };
+  }
+
+  // ============================================================
+  // Parse Double
+  // ============================================================
+
+  static double _parseDouble(
+      dynamic value,
+      ) {
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    return double.tryParse(
+      value?.toString() ?? '',
+    ) ??
+        0;
+  }
+
+  // ============================================================
+  // Parse Int
+  // ============================================================
+
+  static int _parseInt(
+      dynamic value,
+      ) {
+    if (value is num) {
+      return value.toInt();
+    }
+
+    return int.tryParse(
+      value?.toString() ?? '',
+    ) ??
+        0;
   }
 }
