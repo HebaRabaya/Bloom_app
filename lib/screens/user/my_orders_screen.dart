@@ -6,7 +6,9 @@ import '../../services/order_service.dart';
 
 class MyOrdersScreen
     extends StatelessWidget {
-  MyOrdersScreen({super.key});
+  MyOrdersScreen({
+    super.key,
+  });
 
   final OrderService _orderService =
   OrderService();
@@ -38,8 +40,8 @@ class MyOrdersScreen
         ),
       ),
 
-      body: StreamBuilder<
-          List<OrderModel>>(
+      body:
+      StreamBuilder<List<OrderModel>>(
         stream:
         _orderService.getMyOrders(),
 
@@ -52,7 +54,8 @@ class MyOrdersScreen
           if (snapshot.hasError) {
             return _buildMessage(
               icon:
-              Icons.error_outline_rounded,
+              Icons
+                  .error_outline_rounded,
               title:
               'Something went wrong',
               subtitle:
@@ -84,7 +87,8 @@ class MyOrdersScreen
           if (orders.isEmpty) {
             return _buildMessage(
               icon:
-              Icons.receipt_long_outlined,
+              Icons
+                  .receipt_long_outlined,
               title:
               'No orders yet',
               subtitle:
@@ -98,7 +102,8 @@ class MyOrdersScreen
 
           return ListView.separated(
             padding:
-            const EdgeInsets.fromLTRB(
+            const EdgeInsets
+                .fromLTRB(
               16,
               10,
               16,
@@ -139,18 +144,26 @@ class MyOrdersScreen
       padding:
       const EdgeInsets.all(14),
 
-      decoration: BoxDecoration(
-        color: Colors.white,
+      decoration:
+      BoxDecoration(
+        color:
+        Colors.white,
+
         borderRadius:
-        BorderRadius.circular(20),
+        BorderRadius.circular(
+          20,
+        ),
 
         boxShadow: [
           BoxShadow(
-            color: Colors.black
+            color:
+            Colors.black
                 .withValues(
               alpha: 0.04,
             ),
+
             blurRadius: 14,
+
             offset:
             const Offset(0, 5),
           ),
@@ -158,115 +171,154 @@ class MyOrdersScreen
       ),
 
       child: Column(
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
+
         children: [
+          // ==================================================
+          // Order Header
+          // ==================================================
+
           Row(
-            crossAxisAlignment:
-            CrossAxisAlignment.start,
-
             children: [
-              // ==================================================
-              // Product Image
-              // ==================================================
+              Expanded(
+                child: Text(
+                  'Order #${order.id.substring(0, order.id.length > 8 ? 8 : order.id.length)}',
 
-              ClipRRect(
-                borderRadius:
-                BorderRadius.circular(
-                    15),
-
-                child: SizedBox(
-                  width: 90,
-                  height: 90,
-
-                  child: Image.network(
-                    order.productImage,
-                    fit: BoxFit.cover,
-
-                    errorBuilder:
-                        (
-                        context,
-                        error,
-                        stackTrace,
-                        ) {
-                      return Container(
-                        color:
-                        const Color(
-                            0xFFF4E8E5),
-
-                        child:
-                        const Icon(
-                          Icons
-                              .image_not_supported_outlined,
-                          color: Color(
-                              0xFFB86F7B),
-                        ),
-                      );
-                    },
+                  style:
+                  GoogleFonts.dmSans(
+                    fontSize: 14,
+                    fontWeight:
+                    FontWeight.w700,
+                    color:
+                    const Color(
+                      0xFF4B3439,
+                    ),
                   ),
                 ),
               ),
 
-              const SizedBox(
-                width: 14,
+              _buildStatusBadge(
+                order.status,
+              ),
+            ],
+          ),
+
+          const SizedBox(
+            height: 16,
+          ),
+
+          // ==================================================
+          // Products
+          // ==================================================
+
+          ...order.items.map(
+                (item) =>
+                _buildOrderItem(
+                  item,
+                ),
+          ),
+
+          const SizedBox(
+            height: 10,
+          ),
+
+          const Divider(
+            color:
+            Color(0xFFEFE5E2),
+          ),
+
+          const SizedBox(
+            height: 10,
+          ),
+
+          // ==================================================
+          // Total
+          // ==================================================
+
+          Row(
+            children: [
+              Text(
+                'Total',
+
+                style:
+                GoogleFonts.dmSans(
+                  fontSize: 15,
+                  fontWeight:
+                  FontWeight.w700,
+                  color:
+                  const Color(
+                    0xFF4B3439,
+                  ),
+                ),
               ),
 
-              // ==================================================
-              // Product Info
-              // ==================================================
+              const Spacer(),
 
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              Text(
+                '\$${order.totalAmount.toStringAsFixed(2)}',
 
-                  children: [
-                    Text(
-                      order.productName,
-                      maxLines: 2,
-                      overflow:
-                      TextOverflow
-                          .ellipsis,
-
-                      style:
-                      GoogleFonts.dmSans(
-                        fontSize: 16,
-                        fontWeight:
-                        FontWeight.w700,
-                        color:
-                        const Color(
-                            0xFF4B3439),
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 7,
-                    ),
-
-                    Text(
-                      '\$${order.productPrice}',
-                      style:
-                      GoogleFonts.dmSans(
-                        fontSize: 15,
-                        fontWeight:
-                        FontWeight.w700,
-                        color:
-                        const Color(
-                            0xFFB86F7B),
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 7,
-                    ),
-
-                    _buildStatusBadge(),
-                  ],
+                style:
+                GoogleFonts.dmSans(
+                  fontSize: 18,
+                  fontWeight:
+                  FontWeight.w700,
+                  color:
+                  const Color(
+                    0xFFB86F7B,
+                  ),
                 ),
               ),
             ],
           ),
 
           const SizedBox(
-            height: 14,
+            height: 12,
+          ),
+
+          // ==================================================
+          // Address
+          // ==================================================
+
+          Row(
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
+
+            children: [
+              const Icon(
+                Icons
+                    .location_on_outlined,
+                size: 17,
+                color:
+                Color(0xFF92797E),
+              ),
+
+              const SizedBox(
+                width: 7,
+              ),
+
+              Expanded(
+                child: Text(
+                  order.address
+                      .isEmpty
+                      ? 'Address unavailable'
+                      : order.address,
+
+                  style:
+                  GoogleFonts.dmSans(
+                    fontSize: 12,
+                    color:
+                    const Color(
+                      0xFF92797E,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(
+            height: 10,
           ),
 
           // ==================================================
@@ -298,7 +350,8 @@ class MyOrdersScreen
                     fontSize: 12,
                     color:
                     const Color(
-                        0xFF92797E),
+                      0xFF92797E,
+                    ),
                   ),
                 ),
               ),
@@ -314,7 +367,9 @@ class MyOrdersScreen
           // ==================================================
 
           SizedBox(
-            width: double.infinity,
+            width:
+            double.infinity,
+
             height: 45,
 
             child:
@@ -326,7 +381,8 @@ class MyOrdersScreen
                 );
               },
 
-              icon: const Icon(
+              icon:
+              const Icon(
                 Icons
                     .cancel_outlined,
                 size: 18,
@@ -334,6 +390,7 @@ class MyOrdersScreen
 
               label: Text(
                 'Cancel Order',
+
                 style:
                 GoogleFonts.dmSans(
                   fontWeight:
@@ -342,23 +399,160 @@ class MyOrdersScreen
               ),
 
               style:
-              OutlinedButton.styleFrom(
+              OutlinedButton
+                  .styleFrom(
                 foregroundColor:
                 const Color(
-                    0xFF9E5967),
+                  0xFF9E5967,
+                ),
 
                 side:
                 const BorderSide(
                   color:
-                  Color(0xFFE1BFC4),
+                  Color(
+                    0xFFE1BFC4,
+                  ),
                 ),
 
                 shape:
                 RoundedRectangleBorder(
                   borderRadius:
-                  BorderRadius.circular(
-                      14),
+                  BorderRadius
+                      .circular(
+                    14,
+                  ),
                 ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // Order Item
+  // ============================================================
+
+  Widget _buildOrderItem(
+      OrderItemModel item,
+      ) {
+    final itemTotal =
+        item.productPrice *
+            item.quantity;
+
+    return Container(
+      margin:
+      const EdgeInsets.only(
+        bottom: 10,
+      ),
+
+      child: Row(
+        children: [
+          // Product Image
+          ClipRRect(
+            borderRadius:
+            BorderRadius.circular(
+              12,
+            ),
+
+            child: SizedBox(
+              width: 65,
+              height: 65,
+
+              child: Image.network(
+                item.productImage,
+
+                fit: BoxFit.cover,
+
+                errorBuilder:
+                    (
+                    context,
+                    error,
+                    stackTrace,
+                    ) {
+                  return Container(
+                    color:
+                    const Color(
+                      0xFFF4E8E5,
+                    ),
+
+                    child:
+                    const Icon(
+                      Icons
+                          .image_not_supported_outlined,
+                      color:
+                      Color(
+                        0xFFB86F7B,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+
+          const SizedBox(
+            width: 12,
+          ),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
+
+              children: [
+                Text(
+                  item.productName,
+
+                  maxLines: 2,
+
+                  overflow:
+                  TextOverflow.ellipsis,
+
+                  style:
+                  GoogleFonts.dmSans(
+                    fontSize: 14,
+                    fontWeight:
+                    FontWeight.w700,
+                    color:
+                    const Color(
+                      0xFF4B3439,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(
+                  height: 4,
+                ),
+
+                Text(
+                  'Qty: ${item.quantity}',
+
+                  style:
+                  GoogleFonts.dmSans(
+                    fontSize: 12,
+                    color:
+                    const Color(
+                      0xFF92797E,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Text(
+            '\$${itemTotal.toStringAsFixed(2)}',
+
+            style:
+            GoogleFonts.dmSans(
+              fontSize: 13,
+              fontWeight:
+              FontWeight.w700,
+              color:
+              const Color(
+                0xFFB86F7B,
               ),
             ),
           ),
@@ -371,30 +565,47 @@ class MyOrdersScreen
   // Status Badge
   // ============================================================
 
-  Widget _buildStatusBadge() {
+  Widget _buildStatusBadge(
+      String status,
+      ) {
+    final displayStatus =
+    status.isEmpty
+        ? 'Pending'
+        : status;
+
     return Container(
       padding:
-      const EdgeInsets.symmetric(
-        horizontal: 9,
+      const EdgeInsets
+          .symmetric(
+        horizontal: 10,
         vertical: 5,
       ),
 
       decoration:
       BoxDecoration(
         color:
-        const Color(0xFFE8F1E6),
+        const Color(
+          0xFFFFF0D9,
+        ),
+
         borderRadius:
-        BorderRadius.circular(20),
+        BorderRadius.circular(
+          20,
+        ),
       ),
 
       child: Text(
-        'Order placed',
+        displayStatus,
+
         style:
         GoogleFonts.dmSans(
           fontSize: 11,
           fontWeight:
-          FontWeight.w600,
-          color: Colors.green,
+          FontWeight.w700,
+          color:
+          const Color(
+            0xFF9A6A2F,
+          ),
         ),
       ),
     );
@@ -415,36 +626,43 @@ class MyOrdersScreen
       builder: (context) {
         return AlertDialog(
           backgroundColor:
-          const Color(0xFFFFFAF8),
+          const Color(
+            0xFFFFFAF8,
+          ),
 
           shape:
           RoundedRectangleBorder(
             borderRadius:
             BorderRadius.circular(
-                24),
+              24,
+            ),
           ),
 
           title: Text(
             'Cancel Order?',
+
             style:
-            GoogleFonts.playfairDisplay(
+            GoogleFonts
+                .playfairDisplay(
               fontSize: 23,
               fontWeight:
               FontWeight.w600,
               color:
               const Color(
-                  0xFF4B3439),
+                0xFF4B3439,
+              ),
             ),
           ),
 
           content: Text(
-            'Are you sure you want to cancel this order? The product will be returned to stock.',
+            'Are you sure you want to cancel this order? The ordered quantities will be returned to stock.',
 
             style:
             GoogleFonts.dmSans(
               color:
               const Color(
-                  0xFF7D696D),
+                0xFF7D696D,
+              ),
             ),
           ),
 
@@ -472,10 +690,13 @@ class MyOrdersScreen
               },
 
               style:
-              ElevatedButton.styleFrom(
+              ElevatedButton
+                  .styleFrom(
                 backgroundColor:
                 const Color(
-                    0xFFB86F7B),
+                  0xFFB86F7B,
+                ),
+
                 foregroundColor:
                 Colors.white,
               ),
@@ -544,31 +765,27 @@ class MyOrdersScreen
       timestamp.toDate();
 
       final day =
-      date.day.toString().padLeft(
-        2,
-        '0',
-      );
+      date.day
+          .toString()
+          .padLeft(2, '0');
 
       final month =
-      date.month.toString().padLeft(
-        2,
-        '0',
-      );
+      date.month
+          .toString()
+          .padLeft(2, '0');
 
       final year =
       date.year.toString();
 
       final hour =
-      date.hour.toString().padLeft(
-        2,
-        '0',
-      );
+      date.hour
+          .toString()
+          .padLeft(2, '0');
 
       final minute =
-      date.minute.toString().padLeft(
-        2,
-        '0',
-      );
+      date.minute
+          .toString()
+          .padLeft(2, '0');
 
       return '$day/$month/$year $hour:$minute';
     } catch (e) {
@@ -588,18 +805,23 @@ class MyOrdersScreen
     return Center(
       child: Padding(
         padding:
-        const EdgeInsets.all(30),
+        const EdgeInsets.all(
+          30,
+        ),
 
         child: Column(
           mainAxisAlignment:
-          MainAxisAlignment.center,
+          MainAxisAlignment
+              .center,
 
           children: [
             Icon(
               icon,
               size: 70,
               color:
-              const Color(0xFFB86F7B),
+              const Color(
+                0xFFB86F7B,
+              ),
             ),
 
             const SizedBox(
@@ -608,17 +830,20 @@ class MyOrdersScreen
 
             Text(
               title,
+
               textAlign:
               TextAlign.center,
 
               style:
-              GoogleFonts.playfairDisplay(
+              GoogleFonts
+                  .playfairDisplay(
                 fontSize: 22,
                 fontWeight:
                 FontWeight.w600,
                 color:
                 const Color(
-                    0xFF4B3439),
+                  0xFF4B3439,
+                ),
               ),
             ),
 
@@ -628,6 +853,7 @@ class MyOrdersScreen
 
             Text(
               subtitle,
+
               textAlign:
               TextAlign.center,
 
@@ -636,7 +862,8 @@ class MyOrdersScreen
                 fontSize: 13,
                 color:
                 const Color(
-                    0xFF92797E),
+                  0xFF92797E,
+                ),
               ),
             ),
           ],

@@ -4,9 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/cart_model.dart';
 
 class CartService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore =
+      FirebaseFirestore.instance;
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAuth _auth =
+      FirebaseAuth.instance;
 
   // ============================================================
   // Current User ID
@@ -28,7 +30,8 @@ class CartService {
   // User Cart Collection
   // ============================================================
 
-  CollectionReference<Map<String, dynamic>> get _cart {
+  CollectionReference<Map<String, dynamic>>
+  get _cart {
     return _firestore
         .collection('users')
         .doc(_userId)
@@ -60,11 +63,13 @@ class CartService {
   Future<void> addToCart({
     required String productId,
   }) async {
-    final productReference = _firestore
+    final productReference =
+    _firestore
         .collection('products')
         .doc(productId);
 
-    final cartReference = _cart.doc(productId);
+    final cartReference =
+    _cart.doc(productId);
 
     await _firestore.runTransaction(
           (transaction) async {
@@ -72,7 +77,8 @@ class CartService {
         // Read Product
         // ------------------------------------------------------
 
-        final productSnapshot = await transaction.get(
+        final productSnapshot =
+        await transaction.get(
           productReference,
         );
 
@@ -82,7 +88,8 @@ class CartService {
           );
         }
 
-        final productData = productSnapshot.data();
+        final productData =
+        productSnapshot.data();
 
         if (productData == null) {
           throw Exception(
@@ -95,7 +102,9 @@ class CartService {
         // ------------------------------------------------------
 
         final availableQuantity =
-            (productData['quantity'] as num?)?.toInt() ?? 0;
+            (productData['quantity'] as num?)
+                ?.toInt() ??
+                0;
 
         if (availableQuantity <= 0) {
           throw Exception(
@@ -107,24 +116,29 @@ class CartService {
         // Read Current Cart Item
         // ------------------------------------------------------
 
-        final cartSnapshot = await transaction.get(
+        final cartSnapshot =
+        await transaction.get(
           cartReference,
         );
 
         int currentCartQuantity = 0;
 
         if (cartSnapshot.exists) {
-          final cartData = cartSnapshot.data();
+          final cartData =
+          cartSnapshot.data();
 
           currentCartQuantity =
-              (cartData?['quantity'] as num?)?.toInt() ?? 0;
+              (cartData?['quantity'] as num?)
+                  ?.toInt() ??
+                  0;
         }
 
         // ------------------------------------------------------
         // Check Maximum Quantity
         // ------------------------------------------------------
 
-        if (currentCartQuantity + 1 > availableQuantity) {
+        if (currentCartQuantity + 1 >
+            availableQuantity) {
           throw Exception(
             'Maximum available quantity reached.',
           );
@@ -143,16 +157,20 @@ class CartService {
             productData['name'] ?? '',
 
             'productPrice':
-            (productData['price'] as num?)?.toDouble() ?? 0.0,
+            (productData['price'] as num?)
+                ?.toDouble() ??
+                0.0,
 
             'productImage':
             productData['imageUrl'] ?? '',
 
-            // هاي كمية المنتج داخل السلة
-            'quantity': currentCartQuantity + 1,
+            // كمية المنتج داخل السلة
+            'quantity':
+            currentCartQuantity + 1,
 
-            // هاي كمية المخزون الأصلي
-            'availableQuantity': availableQuantity,
+            // كمية المخزون الأصلي
+            'availableQuantity':
+            availableQuantity,
 
             'updatedAt':
             FieldValue.serverTimestamp(),
@@ -169,9 +187,11 @@ class CartService {
   Future<void> increaseQuantity(
       CartModel item,
       ) async {
-    final cartReference = _cart.doc(item.productId);
+    final cartReference =
+    _cart.doc(item.productId);
 
-    final productReference = _firestore
+    final productReference =
+    _firestore
         .collection('products')
         .doc(item.productId);
 
@@ -181,7 +201,8 @@ class CartService {
         // Read Product
         // ------------------------------------------------------
 
-        final productSnapshot = await transaction.get(
+        final productSnapshot =
+        await transaction.get(
           productReference,
         );
 
@@ -191,7 +212,8 @@ class CartService {
           );
         }
 
-        final productData = productSnapshot.data();
+        final productData =
+        productSnapshot.data();
 
         if (productData == null) {
           throw Exception(
@@ -200,13 +222,16 @@ class CartService {
         }
 
         final availableQuantity =
-            (productData['quantity'] as num?)?.toInt() ?? 0;
+            (productData['quantity'] as num?)
+                ?.toInt() ??
+                0;
 
         // ------------------------------------------------------
         // Read Current Cart Item
         // ------------------------------------------------------
 
-        final cartSnapshot = await transaction.get(
+        final cartSnapshot =
+        await transaction.get(
           cartReference,
         );
 
@@ -216,16 +241,20 @@ class CartService {
           );
         }
 
-        final cartData = cartSnapshot.data();
+        final cartData =
+        cartSnapshot.data();
 
         final currentCartQuantity =
-            (cartData?['quantity'] as num?)?.toInt() ?? 0;
+            (cartData?['quantity'] as num?)
+                ?.toInt() ??
+                0;
 
         // ------------------------------------------------------
         // Check Maximum Stock
         // ------------------------------------------------------
 
-        if (currentCartQuantity + 1 > availableQuantity) {
+        if (currentCartQuantity + 1 >
+            availableQuantity) {
           throw Exception(
             'Maximum available quantity reached.',
           );
@@ -238,7 +267,8 @@ class CartService {
         transaction.update(
           cartReference,
           {
-            'quantity': currentCartQuantity + 1,
+            'quantity':
+            currentCartQuantity + 1,
 
             'availableQuantity':
             availableQuantity,
@@ -258,7 +288,8 @@ class CartService {
   Future<void> decreaseQuantity(
       CartModel item,
       ) async {
-    final cartReference = _cart.doc(item.productId);
+    final cartReference =
+    _cart.doc(item.productId);
 
     await _firestore.runTransaction(
           (transaction) async {
@@ -266,7 +297,8 @@ class CartService {
         // Read Current Cart Item
         // ------------------------------------------------------
 
-        final cartSnapshot = await transaction.get(
+        final cartSnapshot =
+        await transaction.get(
           cartReference,
         );
 
@@ -274,10 +306,13 @@ class CartService {
           return;
         }
 
-        final cartData = cartSnapshot.data();
+        final cartData =
+        cartSnapshot.data();
 
         final currentQuantity =
-            (cartData?['quantity'] as num?)?.toInt() ?? 1;
+            (cartData?['quantity'] as num?)
+                ?.toInt() ??
+                1;
 
         // ------------------------------------------------------
         // If Quantity Is 1 → Remove From Cart
@@ -298,7 +333,8 @@ class CartService {
         transaction.update(
           cartReference,
           {
-            'quantity': currentQuantity - 1,
+            'quantity':
+            currentQuantity - 1,
 
             'updatedAt':
             FieldValue.serverTimestamp(),
@@ -318,5 +354,33 @@ class CartService {
     await _cart
         .doc(productId)
         .delete();
+  }
+
+  // ============================================================
+  // Clear Cart After Checkout
+  // ============================================================
+  // بعد نجاح الطلب، بنمسح كل المنتجات الموجودة
+  // داخل سلة المستخدم.
+  // ============================================================
+
+  Future<void> clearCart() async {
+    final snapshot =
+    await _cart.get();
+
+    if (snapshot.docs.isEmpty) {
+      return;
+    }
+
+    final batch =
+    _firestore.batch();
+
+    for (final document
+    in snapshot.docs) {
+      batch.delete(
+        document.reference,
+      );
+    }
+
+    await batch.commit();
   }
 }

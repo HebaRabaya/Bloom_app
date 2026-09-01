@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../models/cart_model.dart';
 import '../models/order_model.dart';
 
 class OrderService {
@@ -27,13 +28,28 @@ class OrderService {
       _firestore.collection('products');
 
   // ============================================================
-  // Create Order + Decrease Product Quantity
+  // User Cart Collection
   // ============================================================
 
-  Future<void> createOrder({
-    required String productId,
+  CollectionReference<Map<String, dynamic>>
+  _userCart(
+      String uid,
+      ) {
+    return _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('cart');
+  }
+
+  // ============================================================
+  // Checkout
+  // ============================================================
+
+  Future<void> checkout({
+    required String address,
   }) async {
-    final user = _auth.currentUser;
+    final user =
+        _auth.currentUser;
 
     if (user == null) {
       throw Exception(
@@ -41,65 +57,56 @@ class OrderService {
       );
     }
 
-    final productReference =
-    _products.doc(productId);
+    if (address.trim().isEmpty) {
+      throw Exception(
+        'Please enter your delivery address.',
+      );
+    }
 
-    final orderReference =
-    _orders.doc();
+    final uid = user.uid;
 
     final userReference =
     _firestore
         .collection('users')
-        .doc(user.uid);
+        .doc(uid);
+
+    final cartCollection =
+    _userCart(uid);
+
+    final orderReference =
+    _orders.doc();
 
     // ==========================================================
-    // Transaction
+    // READ CART
+    // ==========================================================
+
+    final cartSnapshot =
+    await cartCollection.get();
+
+    if (cartSnapshot.docs.isEmpty) {
+      throw Exception(
+        'Your cart is empty.',
+      );
+    }
+
+    final cartItems =
+    cartSnapshot.docs.map(
+          (document) {
+        return CartModel.fromMap(
+          document.data(),
+        );
+      },
+    ).toList();
+
+    // ==========================================================
+    // TRANSACTION
     // ==========================================================
 
     await _firestore.runTransaction(
           (transaction) async {
-        // ------------------------------------------------------
-        // Read Product
-        // ------------------------------------------------------
-
-        final productSnapshot =
-        await transaction.get(
-          productReference,
-        );
-
-        if (!productSnapshot.exists) {
-          throw Exception(
-            'Product not found.',
-          );
-        }
-
-        final productData =
-        productSnapshot.data();
-
-        if (productData == null) {
-          throw Exception(
-            'Product data not found.',
-          );
-        }
-
-        // ------------------------------------------------------
-        // Check Quantity
-        // ------------------------------------------------------
-
-        final quantity =
-        _toInt(
-          productData['quantity'],
-        );
-
-        if (quantity <= 0) {
-          throw Exception(
-            'This product is out of stock.',
-          );
-        }
-
-        // ------------------------------------------------------
-        // Read User Profile
-        // ------------------------------------------------------
+        // ======================================================
+        // READ USER
+        // ======================================================
 
         final userSnapshot =
         await transaction.get(
@@ -111,65 +118,217 @@ class OrderService {
 
         final userName =
             userData?['name']
-                ?.toString()
-                ?? user.displayName
-                ?? 'Bloom User';
+                ?.toString() ??
+                user.displayName ??
+                'Bloom User';
 
         final userPhone =
             userData?['phone']
-                ?.toString()
-                ?? '';
+                ?.toString() ??
+                '';
 
-        // ------------------------------------------------------
-        // Product Data
-        // ------------------------------------------------------
+        // ======================================================
+        // READ PRODUCTS
+        // ======================================================
 
-        final productName =
-            productData['name']
-                ?.toString()
-                ?? '';
+        final Map<
+            String,
+            DocumentSnapshot<
+                Map<String, dynamic>>>
+        productSnapshots = {};
 
-        final productImage =
-            productData['imageUrl']
-                ?.toString()
-                ?? '';
+        for (final cartItem in cartItems) {
+          final productReference =
+          _products.doc(
+            cartItem.productId,
+          );
 
-        final productPrice =
-        _toDouble(
-          productData['price'],
-        );
+          final productSnapshot =
+          await transaction.get(
+            productReference,
+          );
 
-        // ------------------------------------------------------
-        // Decrease Quantity
-        // ------------------------------------------------------
+          if (!productSnapshot.exists) {
+            throw Exception(
+              '${cartItem.productName} is no longer available.',
+            );
+          }
 
-        transaction.update(
-          productReference,
-          {
-            'quantity': quantity - 1,
-            'updatedAt':
-            FieldValue.serverTimestamp(),
-          },
-        );
+          productSnapshots[
+          cartItem.productId] =
+              productSnapshot;
+        }
 
-        // ------------------------------------------------------
-        // Create Order
-        // ------------------------------------------------------
+        // ======================================================
+        // PREPARE ORDER ITEMS
+        // ======================================================
+
+        final List<OrderItemModel>
+        orderItems = [];
+
+        double totalAmount = 0;
+
+        // ======================================================
+        // VALIDATE STOCK
+        // ======================================================
+
+        for (final cartItem in cartItems) {
+          final productSnapshot =
+          productSnapshots[
+          cartItem.productId];
+
+          if (productSnapshot ==
+              null ||
+              !productSnapshot.exists) {
+            throw Exception(
+              '${cartItem.productName} is no longer available.',
+            );
+          }
+
+          final productData =
+          productSnapshot.data();
+
+          if (productData == null) {
+            throw Exception(
+              'Product data not found.',
+            );
+          }
+
+          final currentStock =
+          _toInt(
+            productData['quantity'],
+          );
+
+          if (cartItem.quantity <= 0) {
+            throw Exception(
+              'Invalid quantity for ${cartItem.productName}.',
+            );
+          }
+
+          if (currentStock <
+              cartItem.quantity) {
+            throw Exception(
+              'Not enough stock for ${cartItem.productName}. Available: $currentStock',
+            );
+          }
+
+          final productName =
+              productData['name']
+                  ?.toString() ??
+                  cartItem.productName;
+
+          final productImage =
+              productData['imageUrl']
+                  ?.toString() ??
+                  cartItem.productImage;
+
+          final productPrice =
+          _toDouble(
+            productData['price'],
+          );
+
+          orderItems.add(
+            OrderItemModel(
+              productId:
+              cartItem.productId,
+              productName:
+              productName,
+              productImage:
+              productImage,
+              productPrice:
+              productPrice,
+              quantity:
+              cartItem.quantity,
+            ),
+          );
+
+          totalAmount +=
+              productPrice *
+                  cartItem.quantity;
+        }
+
+        // ======================================================
+        // CREATE ORDER
+        // ======================================================
 
         transaction.set(
           orderReference,
           {
-            'productId': productId,
-            'productName': productName,
-            'productImage': productImage,
-            'productPrice': productPrice,
-            'userId': user.uid,
+            'userId': uid,
             'userName': userName,
             'userPhone': userPhone,
+            'address':
+            address.trim(),
+
+            'items': orderItems
+                .map(
+                  (item) =>
+                  item.toMap(),
+            )
+                .toList(),
+
+            'totalAmount':
+            totalAmount,
+
             'createdAt':
-            FieldValue.serverTimestamp(),
+            FieldValue
+                .serverTimestamp(),
+
+            'status':
+            'Pending',
           },
         );
+
+        // ======================================================
+        // DECREASE STOCK
+        // ======================================================
+
+        for (final cartItem
+        in cartItems) {
+          final productSnapshot =
+          productSnapshots[
+          cartItem.productId];
+
+          if (productSnapshot ==
+              null ||
+              !productSnapshot.exists) {
+            continue;
+          }
+
+          final productData =
+          productSnapshot.data();
+
+          final currentStock =
+          _toInt(
+            productData?['quantity'],
+          );
+
+          final newStock =
+              currentStock -
+                  cartItem.quantity;
+
+          transaction.update(
+            productSnapshot.reference,
+            {
+              'quantity':
+              newStock,
+              'updatedAt':
+              FieldValue
+                  .serverTimestamp(),
+            },
+          );
+        }
+
+        // ======================================================
+        // CLEAR CART
+        // ======================================================
+
+        for (final document
+        in cartSnapshot.docs) {
+          transaction.delete(
+            document.reference,
+          );
+        }
       },
     );
   }
@@ -178,8 +337,10 @@ class OrderService {
   // Get Current User Orders
   // ============================================================
 
-  Stream<List<OrderModel>> getMyOrders() {
-    final user = _auth.currentUser;
+  Stream<List<OrderModel>>
+  getMyOrders() {
+    final user =
+        _auth.currentUser;
 
     if (user == null) {
       return Stream.value([]);
@@ -196,16 +357,14 @@ class OrderService {
         final orders =
         snapshot.docs
             .map(
-              (document) =>
-              OrderModel.fromMap(
-                document.id,
-                document.data(),
-              ),
-        )
-            .toList();
+              (document) {
+            return OrderModel.fromMap(
+              document.id,
+              document.data(),
+            );
+          },
+        ).toList();
 
-        // Sort locally instead of using
-        // Firestore where + orderBy.
         orders.sort(
               (a, b) {
             final aDate =
@@ -242,7 +401,8 @@ class OrderService {
   // Get All Orders
   // ============================================================
 
-  Stream<List<OrderModel>> getAllOrders() {
+  Stream<List<OrderModel>>
+  getAllOrders() {
     return _orders
         .snapshots()
         .map(
@@ -250,13 +410,13 @@ class OrderService {
         final orders =
         snapshot.docs
             .map(
-              (document) =>
-              OrderModel.fromMap(
-                document.id,
-                document.data(),
-              ),
-        )
-            .toList();
+              (document) {
+            return OrderModel.fromMap(
+              document.id,
+              document.data(),
+            );
+          },
+        ).toList();
 
         orders.sort(
               (a, b) {
@@ -291,13 +451,37 @@ class OrderService {
   }
 
   // ============================================================
+  // Update Order Status By Admin
+  // ============================================================
+
+  Future<void> updateOrderStatus({
+    required String orderId,
+    required String status,
+  }) async {
+    if (orderId.trim().isEmpty) {
+      throw Exception(
+        'Order ID is empty.',
+      );
+    }
+
+    await _orders
+        .doc(orderId)
+        .update({
+      'status': status,
+      'updatedAt':
+      FieldValue.serverTimestamp(),
+    });
+  }
+
+  // ============================================================
   // Cancel Order By User
   // ============================================================
 
   Future<void> cancelOrder({
     required OrderModel order,
   }) async {
-    final user = _auth.currentUser;
+    final user =
+        _auth.currentUser;
 
     if (user == null) {
       throw Exception(
@@ -305,8 +489,8 @@ class OrderService {
       );
     }
 
-    // User can cancel only his own order.
-    if (order.userId != user.uid) {
+    if (order.userId !=
+        user.uid) {
       throw Exception(
         'You cannot cancel this order.',
       );
@@ -341,9 +525,9 @@ class OrderService {
 
     await _firestore.runTransaction(
           (transaction) async {
-        // ------------------------------------------------------
-        // Read Order
-        // ------------------------------------------------------
+        // ======================================================
+        // READ ORDER
+        // ======================================================
 
         final orderSnapshot =
         await transaction.get(
@@ -356,73 +540,74 @@ class OrderService {
           );
         }
 
-        final orderData =
-        orderSnapshot.data();
+        // ======================================================
+        // READ PRODUCTS
+        // ======================================================
 
-        if (orderData == null) {
-          throw Exception(
-            'Order data not found.',
+        final productSnapshots =
+        <
+            String,
+            DocumentSnapshot<
+                Map<String, dynamic>>>{
+        };
+
+        for (final item
+        in order.items) {
+          final productReference =
+          _products.doc(
+            item.productId,
+          );
+
+          final productSnapshot =
+          await transaction.get(
+            productReference,
+          );
+
+          productSnapshots[
+          item.productId] =
+              productSnapshot;
+        }
+
+        // ======================================================
+        // RETURN QUANTITIES
+        // ======================================================
+
+        for (final item
+        in order.items) {
+          final productSnapshot =
+          productSnapshots[
+          item.productId];
+
+          if (productSnapshot ==
+              null ||
+              !productSnapshot.exists) {
+            continue;
+          }
+
+          final productData =
+          productSnapshot.data();
+
+          final currentQuantity =
+          _toInt(
+            productData?['quantity'],
+          );
+
+          transaction.update(
+            productSnapshot.reference,
+            {
+              'quantity':
+              currentQuantity +
+                  item.quantity,
+              'updatedAt':
+              FieldValue
+                  .serverTimestamp(),
+            },
           );
         }
 
-        // ------------------------------------------------------
-        // Product ID
-        // ------------------------------------------------------
-
-        final productId =
-        orderData['productId']
-            ?.toString();
-
-        if (productId == null ||
-            productId.isEmpty) {
-          throw Exception(
-            'Product ID not found.',
-          );
-        }
-
-        final productReference =
-        _products.doc(productId);
-
-        // ------------------------------------------------------
-        // Read Product
-        // ------------------------------------------------------
-
-        final productSnapshot =
-        await transaction.get(
-          productReference,
-        );
-
-        if (!productSnapshot.exists) {
-          throw Exception(
-            'Product not found.',
-          );
-        }
-
-        final productData =
-        productSnapshot.data();
-
-        final currentQuantity =
-        _toInt(
-          productData?['quantity'],
-        );
-
-        // ------------------------------------------------------
-        // Return Product To Stock
-        // ------------------------------------------------------
-
-        transaction.update(
-          productReference,
-          {
-            'quantity':
-            currentQuantity + 1,
-            'updatedAt':
-            FieldValue.serverTimestamp(),
-          },
-        );
-
-        // ------------------------------------------------------
-        // Delete Order
-        // ------------------------------------------------------
+        // ======================================================
+        // DELETE ORDER
+        // ======================================================
 
         transaction.delete(
           orderReference,

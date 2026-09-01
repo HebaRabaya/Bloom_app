@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../models/cart_model.dart';
 import '../../services/cart_service.dart';
+import 'checkout_screen.dart';
 
 class CartScreen extends StatelessWidget {
   CartScreen({
@@ -31,6 +32,27 @@ class CartScreen extends StatelessWidget {
   }
 
   // ============================================================
+  // Open Checkout
+  // ============================================================
+
+  void _openCheckout(
+      BuildContext context,
+      List<CartModel> items,
+      double subtotal,
+      ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            CheckoutScreen(
+              items: items,
+              totalAmount: subtotal,
+            ),
+      ),
+    );
+  }
+
+  // ============================================================
   // Build
   // ============================================================
 
@@ -45,9 +67,7 @@ class CartScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor:
         Colors.transparent,
-
         elevation: 0,
-
         centerTitle: true,
 
         title: Text(
@@ -63,10 +83,6 @@ class CartScreen extends StatelessWidget {
         ),
       ),
 
-      // ========================================================
-      // Cart Stream
-      // ========================================================
-
       body: StreamBuilder<List<CartModel>>(
         stream:
         _cartService.getCart(),
@@ -80,7 +96,8 @@ class CartScreen extends StatelessWidget {
           if (snapshot.hasError) {
             return _buildMessage(
               icon:
-              Icons.error_outline_rounded,
+              Icons
+                  .error_outline_rounded,
               title:
               'Something went wrong',
               subtitle:
@@ -112,7 +129,8 @@ class CartScreen extends StatelessWidget {
           if (items.isEmpty) {
             return _buildMessage(
               icon:
-              Icons.shopping_bag_outlined,
+              Icons
+                  .shopping_bag_outlined,
               title:
               'Your cart is empty',
               subtitle:
@@ -125,7 +143,9 @@ class CartScreen extends StatelessWidget {
           // ====================================================
 
           final subtotal =
-          _calculateSubtotal(items);
+          _calculateSubtotal(
+            items,
+          );
 
           // ====================================================
           // Cart Content
@@ -141,7 +161,8 @@ class CartScreen extends StatelessWidget {
                 child:
                 ListView.separated(
                   padding:
-                  const EdgeInsets.fromLTRB(
+                  const EdgeInsets
+                      .fromLTRB(
                     16,
                     10,
                     16,
@@ -174,6 +195,7 @@ class CartScreen extends StatelessWidget {
               _buildSubtotal(
                 context,
                 subtotal,
+                items,
               ),
             ],
           );
@@ -200,15 +222,19 @@ class CartScreen extends StatelessWidget {
 
       decoration:
       BoxDecoration(
-        color: Colors.white,
+        color:
+        Colors.white,
 
         borderRadius:
-        BorderRadius.circular(20),
+        BorderRadius.circular(
+          20,
+        ),
 
         boxShadow: [
           BoxShadow(
             color:
-            Colors.black.withValues(
+            Colors.black
+                .withValues(
               alpha: 0.04,
             ),
 
@@ -228,7 +254,9 @@ class CartScreen extends StatelessWidget {
 
           ClipRRect(
             borderRadius:
-            BorderRadius.circular(15),
+            BorderRadius.circular(
+              15,
+            ),
 
             child: SizedBox(
               width: 90,
@@ -240,7 +268,11 @@ class CartScreen extends StatelessWidget {
                 fit: BoxFit.cover,
 
                 errorBuilder:
-                    (context, error, stackTrace) {
+                    (
+                    context,
+                    error,
+                    stackTrace,
+                    ) {
                   return Container(
                     color:
                     const Color(
@@ -252,7 +284,9 @@ class CartScreen extends StatelessWidget {
                       Icons
                           .image_not_supported_outlined,
                       color:
-                      Color(0xFFB86F7B),
+                      Color(
+                        0xFFB86F7B,
+                      ),
                     ),
                   );
                 },
@@ -260,7 +294,9 @@ class CartScreen extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(width: 14),
+          const SizedBox(
+            width: 14,
+          ),
 
           // ==================================================
           // Product Info
@@ -292,7 +328,9 @@ class CartScreen extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 7),
+                const SizedBox(
+                  height: 7,
+                ),
 
                 Text(
                   '\$${item.productPrice.toStringAsFixed(2)}',
@@ -309,30 +347,31 @@ class CartScreen extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(
+                  height: 10,
+                ),
 
-                // ==============================================
+                // ==================================================
                 // Quantity Controls
-                // ==============================================
+                // ==================================================
 
                 Row(
                   children: [
-                    // ==========================================
                     // Minus
-                    // ==========================================
-
                     _buildQuantityButton(
                       icon:
                       Icons.remove,
 
-                      onPressed: () async {
+                      onPressed:
+                          () async {
                         try {
                           await _cartService
                               .decreaseQuantity(
                             item,
                           );
                         } catch (e) {
-                          if (!context.mounted) {
+                          if (!context
+                              .mounted) {
                             return;
                           }
 
@@ -344,10 +383,7 @@ class CartScreen extends StatelessWidget {
                       },
                     ),
 
-                    // ==========================================
                     // Current Quantity
-                    // ==========================================
-
                     Padding(
                       padding:
                       const EdgeInsets
@@ -359,9 +395,11 @@ class CartScreen extends StatelessWidget {
                         '${item.quantity}',
 
                         style:
-                        GoogleFonts.dmSans(
+                        GoogleFonts
+                            .dmSans(
                           fontWeight:
-                          FontWeight.w700,
+                          FontWeight
+                              .w700,
                           color:
                           const Color(
                             0xFF4B3439,
@@ -370,16 +408,11 @@ class CartScreen extends StatelessWidget {
                       ),
                     ),
 
-                    // ==========================================
                     // Plus
-                    // ==========================================
-
                     _buildQuantityButton(
                       icon:
                       Icons.add,
 
-                      // إذا وصلنا لكمية المخزون
-                      // الزر يصير disabled
                       onPressed:
                       canIncrease
                           ? () async {
@@ -413,14 +446,16 @@ class CartScreen extends StatelessWidget {
           // ==================================================
 
           IconButton(
-            onPressed: () async {
+            onPressed:
+                () async {
               try {
                 await _cartService
                     .removeFromCart(
                   item.productId,
                 );
               } catch (e) {
-                if (!context.mounted) {
+                if (!context
+                    .mounted) {
                   return;
                 }
 
@@ -431,8 +466,10 @@ class CartScreen extends StatelessWidget {
               }
             },
 
-            icon: const Icon(
-              Icons.delete_outline_rounded,
+            icon:
+            const Icon(
+              Icons
+                  .delete_outline_rounded,
               color:
               Color(0xFFB86F7B),
             ),
@@ -448,16 +485,19 @@ class CartScreen extends StatelessWidget {
 
   Widget _buildQuantityButton({
     required IconData icon,
-    required VoidCallback? onPressed,
+    required VoidCallback?
+    onPressed,
   }) {
     return SizedBox(
       width: 32,
       height: 32,
 
       child: IconButton(
-        padding: EdgeInsets.zero,
+        padding:
+        EdgeInsets.zero,
 
-        onPressed: onPressed,
+        onPressed:
+        onPressed,
 
         icon: Icon(
           icon,
@@ -467,16 +507,24 @@ class CartScreen extends StatelessWidget {
         style:
         IconButton.styleFrom(
           backgroundColor:
-          const Color(0xFFF4E8E5),
+          const Color(
+            0xFFF4E8E5,
+          ),
 
           foregroundColor:
-          const Color(0xFF7D5961),
+          const Color(
+            0xFF7D5961,
+          ),
 
           disabledBackgroundColor:
-          const Color(0xFFEDE6E4),
+          const Color(
+            0xFFEDE6E4,
+          ),
 
           disabledForegroundColor:
-          const Color(0xFFB9ACAC),
+          const Color(
+            0xFFB9ACAC,
+          ),
         ),
       ),
     );
@@ -489,6 +537,7 @@ class CartScreen extends StatelessWidget {
   Widget _buildSubtotal(
       BuildContext context,
       double subtotal,
+      List<CartModel> items,
       ) {
     return Container(
       padding:
@@ -501,7 +550,8 @@ class CartScreen extends StatelessWidget {
 
       decoration:
       const BoxDecoration(
-        color: Colors.white,
+        color:
+        Colors.white,
 
         borderRadius:
         BorderRadius.vertical(
@@ -518,14 +568,16 @@ class CartScreen extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment:
-                CrossAxisAlignment.start,
+                CrossAxisAlignment
+                    .start,
 
                 children: [
                   Text(
                     'Subtotal',
 
                     style:
-                    GoogleFonts.dmSans(
+                    GoogleFonts
+                        .dmSans(
                       fontSize: 13,
                       color:
                       const Color(
@@ -542,10 +594,12 @@ class CartScreen extends StatelessWidget {
                     '\$${subtotal.toStringAsFixed(2)}',
 
                     style:
-                    GoogleFonts.dmSans(
+                    GoogleFonts
+                        .dmSans(
                       fontSize: 22,
                       fontWeight:
-                      FontWeight.w700,
+                      FontWeight
+                          .w700,
                       color:
                       const Color(
                         0xFF4B3439,
@@ -563,16 +617,19 @@ class CartScreen extends StatelessWidget {
             SizedBox(
               height: 50,
 
-              child: ElevatedButton(
+              child:
+              ElevatedButton(
                 onPressed: () {
-                  _showMessage(
+                  _openCheckout(
                     context,
-                    'Checkout will be added later.',
+                    items,
+                    subtotal,
                   );
                 },
 
                 style:
-                ElevatedButton.styleFrom(
+                ElevatedButton
+                    .styleFrom(
                   backgroundColor:
                   const Color(
                     0xFFB86F7B,
@@ -586,7 +643,8 @@ class CartScreen extends StatelessWidget {
                   shape:
                   RoundedRectangleBorder(
                     borderRadius:
-                    BorderRadius.circular(
+                    BorderRadius
+                        .circular(
                       15,
                     ),
                   ),
@@ -596,7 +654,8 @@ class CartScreen extends StatelessWidget {
                   'Checkout',
 
                   style:
-                  GoogleFonts.dmSans(
+                  GoogleFonts
+                      .dmSans(
                     fontWeight:
                     FontWeight.w700,
                   ),
@@ -630,12 +689,16 @@ class CartScreen extends StatelessWidget {
         const Color(0xFF5A3D43),
 
         margin:
-        const EdgeInsets.all(16),
+        const EdgeInsets.all(
+          16,
+        ),
 
         shape:
         RoundedRectangleBorder(
           borderRadius:
-          BorderRadius.circular(14),
+          BorderRadius.circular(
+            14,
+          ),
         ),
       ),
     );
@@ -653,25 +716,28 @@ class CartScreen extends StatelessWidget {
     return Center(
       child: Padding(
         padding:
-        const EdgeInsets.all(30),
+        const EdgeInsets.all(
+          30,
+        ),
 
         child: Column(
           mainAxisAlignment:
-          MainAxisAlignment.center,
+          MainAxisAlignment
+              .center,
 
           children: [
             Icon(
               icon,
-
               size: 70,
-
               color:
               const Color(
                 0xFFB86F7B,
               ),
             ),
 
-            const SizedBox(height: 15),
+            const SizedBox(
+              height: 15,
+            ),
 
             Text(
               title,
@@ -680,7 +746,8 @@ class CartScreen extends StatelessWidget {
               TextAlign.center,
 
               style:
-              GoogleFonts.playfairDisplay(
+              GoogleFonts
+                  .playfairDisplay(
                 fontSize: 22,
                 fontWeight:
                 FontWeight.w600,
@@ -691,7 +758,9 @@ class CartScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 6),
+            const SizedBox(
+              height: 6,
+            ),
 
             Text(
               subtitle,

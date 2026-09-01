@@ -30,16 +30,21 @@ class CartModel {
       map['productName']?.toString() ?? '',
 
       productPrice:
-      (map['productPrice'] as num?)?.toDouble() ?? 0.0,
+      (map['productPrice'] as num?)
+          ?.toDouble() ??
+          0.0,
 
       productImage:
       map['productImage']?.toString() ?? '',
 
       quantity:
-      (map['quantity'] as num?)?.toInt() ?? 1,
+      (map['quantity'] as num?)?.toInt() ??
+          1,
 
       availableQuantity:
-      (map['availableQuantity'] as num?)?.toInt() ?? 0,
+      (map['availableQuantity'] as num?)
+          ?.toInt() ??
+          0,
     );
   }
 
