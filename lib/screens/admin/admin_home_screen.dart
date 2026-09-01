@@ -1,26 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../models/order_model.dart';
 import '../../models/product_model.dart';
+import '../../services/order_service.dart';
 import '../../services/product_service.dart';
 import 'add_product_screen.dart';
 
-class AdminHomeScreen
-    extends StatefulWidget {
+class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({
     super.key,
   });
 
   @override
-  State<AdminHomeScreen>
-  createState() =>
+  State<AdminHomeScreen> createState() =>
       _AdminHomeScreenState();
 }
 
-class _AdminHomeScreenState
-    extends State<AdminHomeScreen> {
+class _AdminHomeScreenState extends State<AdminHomeScreen> {
   final ProductService _productService =
   ProductService();
+
+  final OrderService _orderService =
+  OrderService();
 
   // ============================================================
   // Delete Product
@@ -29,22 +31,16 @@ class _AdminHomeScreenState
   Future<void> _deleteProduct(
       ProductModel product,
       ) async {
-    final shouldDelete =
-    await showDialog<bool>(
+    final shouldDelete = await showDialog<bool>(
       context: context,
-
       builder: (context) {
         return AlertDialog(
-          title:
-          const Text(
+          title: const Text(
             'Delete Product?',
           ),
-
           content: Text(
-            'Are you sure you want to delete '
-                '${product.name}?',
+            'Are you sure you want to delete ${product.name}?',
           ),
-
           actions: [
             TextButton(
               onPressed: () {
@@ -53,13 +49,10 @@ class _AdminHomeScreenState
                   false,
                 );
               },
-
-              child:
-              const Text(
+              child: const Text(
                 'Cancel',
               ),
             ),
-
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(
@@ -67,17 +60,11 @@ class _AdminHomeScreenState
                   true,
                 );
               },
-
-              style:
-              ElevatedButton.styleFrom(
-                backgroundColor:
-                Colors.red,
-                foregroundColor:
-                Colors.white,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
               ),
-
-              child:
-              const Text(
+              child: const Text(
                 'Delete',
               ),
             ),
@@ -90,11 +77,14 @@ class _AdminHomeScreenState
       return;
     }
 
-    await _productService
-        .deleteProduct(
+    await _productService.deleteProduct(
       product.id,
     );
   }
+
+  // ============================================================
+  // Build
+  // ============================================================
 
   @override
   Widget build(
@@ -107,36 +97,28 @@ class _AdminHomeScreenState
       appBar: AppBar(
         backgroundColor:
         Colors.transparent,
-
         elevation: 0,
-
+        centerTitle: true,
         title: Text(
-          'Bloom Products',
+          'Admin Dashboard',
           style:
           GoogleFonts.playfairDisplay(
             fontSize: 25,
             fontWeight:
             FontWeight.w600,
             color:
-            const Color(
-              0xFF4B3439,
-            ),
+            const Color(0xFF4B3439),
           ),
         ),
       ),
 
-      // ========================================================
-      // Products Stream
-      // ========================================================
-
-      body: StreamBuilder<
-          List<ProductModel>>(
+      body: StreamBuilder<List<ProductModel>>(
         stream:
         _productService.getProducts(),
 
         builder:
-            (context, snapshot) {
-          if (snapshot.hasError) {
+            (context, productSnapshot) {
+          if (productSnapshot.hasError) {
             return const Center(
               child: Text(
                 'Something went wrong.',
@@ -144,7 +126,7 @@ class _AdminHomeScreenState
             );
           }
 
-          if (!snapshot.hasData) {
+          if (!productSnapshot.hasData) {
             return const Center(
               child:
               CircularProgressIndicator(
@@ -155,53 +137,262 @@ class _AdminHomeScreenState
           }
 
           final products =
-          snapshot.data!;
+          productSnapshot.data!;
 
-          if (products.isEmpty) {
-            return Center(
-              child: Text(
-                'No products yet 🌷',
-                style:
-                GoogleFonts.dmSans(
-                  fontSize: 16,
-                  color:
-                  const Color(
-                    0xFF92797E,
+          return StreamBuilder<List<OrderModel>>(
+            stream:
+            _orderService.getAllOrders(),
+
+            builder:
+                (context, orderSnapshot) {
+              if (orderSnapshot.hasError) {
+                return const Center(
+                  child: Text(
+                    'Something went wrong.',
                   ),
+                );
+              }
+
+              if (!orderSnapshot.hasData) {
+                return const Center(
+                  child:
+                  CircularProgressIndicator(
+                    color:
+                    Color(0xFFB86F7B),
+                  ),
+                );
+              }
+
+              final orders =
+              orderSnapshot.data!;
+
+              return ListView(
+                padding:
+                const EdgeInsets.fromLTRB(
+                  16,
+                  10,
+                  16,
+                  30,
                 ),
-              ),
-            );
-          }
 
-          return GridView.builder(
-            padding:
-            const EdgeInsets.all(16),
+                children: [
+                  // ==================================================
+                  // Dashboard Statistics
+                  // ==================================================
 
-            gridDelegate:
-            const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard(
+                          icon:
+                          Icons.receipt_long_outlined,
+                          title:
+                          'Total Orders',
+                          value:
+                          orders.length.toString(),
+                        ),
+                      ),
 
-              crossAxisSpacing: 14,
+                      const SizedBox(
+                        width: 14,
+                      ),
 
-              mainAxisSpacing: 14,
+                      Expanded(
+                        child: _buildStatCard(
+                          icon:
+                          Icons.local_florist_outlined,
+                          title:
+                          'Total Products',
+                          value:
+                          products.length.toString(),
+                        ),
+                      ),
+                    ],
+                  ),
 
-              childAspectRatio: 0.60,
-            ),
+                  const SizedBox(
+                    height: 28,
+                  ),
 
-            itemCount:
-            products.length,
+                  // ==================================================
+                  // Products Title
+                  // ==================================================
 
-            itemBuilder:
-                (context, index) {
-              final product =
-              products[index];
+                  Text(
+                    'Products',
+                    style:
+                    GoogleFonts.playfairDisplay(
+                      fontSize: 23,
+                      fontWeight:
+                      FontWeight.w600,
+                      color:
+                      const Color(0xFF4B3439),
+                    ),
+                  ),
 
-              return _buildProductCard(
-                product,
+                  const SizedBox(
+                    height: 4,
+                  ),
+
+                  Text(
+                    'Manage your store products.',
+                    style:
+                    GoogleFonts.dmSans(
+                      fontSize: 13,
+                      color:
+                      const Color(0xFF92797E),
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height: 14,
+                  ),
+
+                  // ==================================================
+                  // Products
+                  // ==================================================
+
+                  if (products.isEmpty)
+                    Padding(
+                      padding:
+                      const EdgeInsets.only(
+                        top: 80,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'No products yet 🌷',
+                          style:
+                          GoogleFonts.dmSans(
+                            fontSize: 16,
+                            color:
+                            const Color(
+                              0xFF92797E,
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics:
+                      const NeverScrollableScrollPhysics(),
+
+                      gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 14,
+                        mainAxisSpacing: 14,
+                        childAspectRatio: 0.60,
+                      ),
+
+                      itemCount:
+                      products.length,
+
+                      itemBuilder:
+                          (context, index) {
+                        final product =
+                        products[index];
+
+                        return _buildProductCard(
+                          product,
+                        );
+                      },
+                    ),
+                ],
               );
             },
           );
         },
+      ),
+    );
+  }
+
+  // ============================================================
+  // Statistics Card
+  // ============================================================
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
+    return Container(
+      padding:
+      const EdgeInsets.all(18),
+
+      decoration:
+      BoxDecoration(
+        color: Colors.white,
+        borderRadius:
+        BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color:
+            Colors.black.withValues(
+              alpha: 0.04,
+            ),
+            blurRadius: 14,
+            offset:
+            const Offset(0, 5),
+          ),
+        ],
+      ),
+
+      child: Column(
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
+
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+
+            decoration:
+            BoxDecoration(
+              color:
+              const Color(0xFFF4E8E5),
+              borderRadius:
+              BorderRadius.circular(14),
+            ),
+
+            child: Icon(
+              icon,
+              color:
+              const Color(0xFFB86F7B),
+            ),
+          ),
+
+          const SizedBox(
+            height: 14,
+          ),
+
+          Text(
+            title,
+            style:
+            GoogleFonts.dmSans(
+              fontSize: 12,
+              color:
+              const Color(0xFF92797E),
+            ),
+          ),
+
+          const SizedBox(
+            height: 4,
+          ),
+
+          Text(
+            value,
+            style:
+            GoogleFonts.dmSans(
+              fontSize: 25,
+              fontWeight:
+              FontWeight.w800,
+              color:
+              const Color(0xFF4B3439),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -217,21 +408,15 @@ class _AdminHomeScreenState
       decoration:
       BoxDecoration(
         color: Colors.white,
-
         borderRadius:
-        BorderRadius.circular(
-          20,
-        ),
-
+        BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black
-                .withValues(
+            color:
+            Colors.black.withValues(
               alpha: 0.05,
             ),
-
             blurRadius: 15,
-
             offset:
             const Offset(0, 5),
           ),
@@ -245,37 +430,36 @@ class _AdminHomeScreenState
             CrossAxisAlignment.start,
 
             children: [
+              // ==================================================
               // Product Image
+              // ==================================================
 
               ClipRRect(
                 borderRadius:
                 const BorderRadius.vertical(
                   top:
-                  Radius.circular(
-                    20,
-                  ),
+                  Radius.circular(20),
                 ),
 
-                child:
-                SizedBox(
+                child: SizedBox(
                   height: 130,
                   width:
                   double.infinity,
 
-                  child: Image.network(
+                  child:
+                  Image.network(
                     product.imageUrl,
-
                     fit:
                     BoxFit.cover,
 
-                    errorBuilder: (
+                    errorBuilder:
+                        (
                         context,
                         error,
                         stackTrace,
                         ) {
                       return const Center(
-                        child:
-                        Icon(
+                        child: Icon(
                           Icons
                               .image_not_supported_outlined,
                         ),
@@ -287,14 +471,11 @@ class _AdminHomeScreenState
 
               Padding(
                 padding:
-                const EdgeInsets.all(
-                  12,
-                ),
+                const EdgeInsets.all(12),
 
                 child: Column(
                   crossAxisAlignment:
-                  CrossAxisAlignment
-                      .start,
+                  CrossAxisAlignment.start,
 
                   children: [
                     Text(
@@ -303,8 +484,7 @@ class _AdminHomeScreenState
                       maxLines: 1,
 
                       overflow:
-                      TextOverflow
-                          .ellipsis,
+                      TextOverflow.ellipsis,
 
                       style:
                       GoogleFonts.dmSans(
@@ -326,7 +506,6 @@ class _AdminHomeScreenState
                         const Color(
                           0xFFB86F7B,
                         ),
-
                         fontWeight:
                         FontWeight.w700,
                       ),
@@ -342,7 +521,6 @@ class _AdminHomeScreenState
                       style:
                       GoogleFonts.dmSans(
                         fontSize: 12,
-
                         color:
                         const Color(
                           0xFF92797E,
@@ -363,15 +541,12 @@ class _AdminHomeScreenState
             top: 8,
             right: 45,
 
-            child:
-            CircleAvatar(
+            child: CircleAvatar(
               radius: 16,
-
               backgroundColor:
               Colors.white,
 
-              child:
-              IconButton(
+              child: IconButton(
                 iconSize: 17,
 
                 onPressed: () {
@@ -387,8 +562,7 @@ class _AdminHomeScreenState
                   );
                 },
 
-                icon:
-                const Icon(
+                icon: const Icon(
                   Icons.edit_outlined,
                 ),
               ),
@@ -403,15 +577,12 @@ class _AdminHomeScreenState
             top: 8,
             right: 8,
 
-            child:
-            CircleAvatar(
+            child: CircleAvatar(
               radius: 16,
-
               backgroundColor:
               Colors.white,
 
-              child:
-              IconButton(
+              child: IconButton(
                 iconSize: 17,
 
                 onPressed: () {
@@ -420,11 +591,9 @@ class _AdminHomeScreenState
                   );
                 },
 
-                icon:
-                const Icon(
+                icon: const Icon(
                   Icons.delete_outline,
-                  color:
-                  Colors.red,
+                  color: Colors.red,
                 ),
               ),
             ),
