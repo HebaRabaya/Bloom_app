@@ -1,820 +1,430 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../models/cart_model.dart';
+import '../../services/cart_service.dart';
 import '../../services/order_service.dart';
 import '../../services/profile_service.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/bloom_animations.dart';
+import '../../widgets/bloom_ui.dart';
+import 'order_success_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
-  final List<CartModel> items;
-  final double totalAmount;
-
-  const CheckoutScreen({
-    super.key,
-    required this.items,
-    required this.totalAmount,
-  });
+  const CheckoutScreen({super.key});
 
   @override
-  State<CheckoutScreen> createState() =>
-      _CheckoutScreenState();
+  State<CheckoutScreen> createState() => _CheckoutScreenState();
 }
 
-class _CheckoutScreenState
-    extends State<CheckoutScreen> {
-
-  // ============================================================
-  // Controllers
-  // ============================================================
-
-  final TextEditingController
-  _addressController =
-  TextEditingController();
-
-  // ============================================================
-  // Services
-  // ============================================================
-
-  final OrderService _orderService =
-  OrderService();
-
-  final ProfileService _profileService =
-  ProfileService();
-
-  // ============================================================
-  // States
-  // ============================================================
+class _CheckoutScreenState extends State<CheckoutScreen> {
+  final _addressController = TextEditingController();
+  final _orderService = OrderService();
+  final _profileService = ProfileService();
+  final _cartService = CartService();
 
   bool _isLoadingAddress = true;
-  bool _isCheckingOut = false;
-
-  // ============================================================
-  // Init
-  // ============================================================
+  bool _isPlacingOrder = false;
 
   @override
   void initState() {
     super.initState();
-
     _loadAddress();
   }
-
-  // ============================================================
-  // Dispose
-  // ============================================================
 
   @override
   void dispose() {
     _addressController.dispose();
-
     super.dispose();
   }
 
   // ============================================================
-  // Load Saved Address
-  // ============================================================
-  // أول ما تفتح شاشة Checkout،
-  // بنجيب العنوان المحفوظ سابقًا من Firestore.
+  // Saved delivery address
   // ============================================================
 
   Future<void> _loadAddress() async {
-    final user =
-        FirebaseAuth.instance.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      if (mounted) {
-        setState(() {
-          _isLoadingAddress = false;
-        });
-      }
-
+      if (mounted) setState(() => _isLoadingAddress = false);
       return;
     }
 
     try {
-      final document =
-      await _profileService.getProfile(
-        user.uid,
-      );
-
-      final data =
-      document.data();
-
+      final document = await _profileService.getProfile(user.uid);
       _addressController.text =
-          data?['address']
-              ?.toString() ??
-              '';
-    } catch (e) {
-      _showMessage(
-        'Unable to load your address.',
-      );
+          document.data()?['address']?.toString() ?? '';
+    } catch (_) {
+      if (!mounted) return;
+      showBloomSnack(context, 'Unable to load your saved address.');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingAddress = false;
-        });
-      }
+      if (mounted) setState(() => _isLoadingAddress = false);
     }
   }
 
   // ============================================================
-  // Place Order
-  // ============================================================
-  // هذه هي العملية الرئيسية للـ Checkout.
-  //
-  // قبل إنشاء الطلب:
-  // 1. نتأكد من العنوان.
-  // 2. نخزن العنوان في Profile.
-  //
-  // بعدها OrderService ينفذ:
-  // 1. Create Order
-  // 2. Decrease Stock
-  // 3. Clear Cart
+  // Place order
   // ============================================================
 
   Future<void> _placeOrder() async {
-    final address =
-    _addressController.text.trim();
+    FocusScope.of(context).unfocus();
 
-    // ----------------------------------------------------------
-    // Validate Address
-    // ----------------------------------------------------------
+    final address = _addressController.text.trim();
 
     if (address.isEmpty) {
-      _showMessage(
+      showBloomSnack(
+        context,
         'Please enter your delivery address.',
+        isError: true,
       );
-
       return;
     }
 
-    final user =
-        FirebaseAuth.instance.currentUser;
-
+    final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      _showMessage(
-        'No logged-in user found.',
-      );
-
+      showBloomSnack(context, 'No logged-in user found.', isError: true);
       return;
     }
 
-    setState(() {
-      _isCheckingOut = true;
-    });
+    setState(() => _isPlacingOrder = true);
 
     try {
-      // ========================================================
-      // Save Address
-      // ========================================================
+      await _profileService.saveAddress(uid: user.uid, address: address);
+      final orderId = await _orderService.checkout(address: address);
 
-      await _profileService.saveAddress(
-        uid: user.uid,
-        address: address,
-      );
+      if (!mounted) return;
 
-      // ========================================================
-      // Checkout
-      // ========================================================
-      // OrderService ينفذ دورة الشراء كاملة:
-      //
-      // 1. Create Order
-      // 2. Decrease Stock
-      // 3. Clear Cart
-      // ========================================================
-
-      await _orderService.checkout(
-        address: address,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      // ========================================================
-      // Return To Cart
-      // ========================================================
-      // بعد نجاح العملية، Stream السلة رح يتحدث تلقائيًا
-      // وتظهر فاضية.
-      // ========================================================
-
-      Navigator.pop(context, true);
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Order placed successfully 🌷',
-          ),
+      Navigator.pushReplacement(
+        context,
+        BloomPageRoute(
+          builder: (_) => OrderSuccessScreen(orderId: orderId),
         ),
       );
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
-
-      _showMessage(
-        _getCheckoutErrorMessage(e),
-      );
+      if (!mounted) return;
+      showBloomSnack(context, _checkoutError(e), isError: true);
     } finally {
-      if (mounted) {
-        setState(() {
-          _isCheckingOut = false;
-        });
-      }
+      if (mounted) setState(() => _isPlacingOrder = false);
     }
   }
 
-  // ============================================================
-  // Checkout Error Message
-  // ============================================================
+  String _checkoutError(Object error) {
+    final message = error.toString();
 
-  String _getCheckoutErrorMessage(
-      Object error,
-      ) {
-    final message =
-    error.toString();
-
-    if (message.contains(
-      'Not enough stock',
-    )) {
-      return message
-          .replaceFirst(
-        'Exception: ',
-        '',
-      );
+    if (message.contains('Not enough stock')) {
+      return message.replaceFirst('Exception: ', '');
     }
-
-    if (message.contains(
-      'cart is empty',
-    )) {
+    if (message.contains('cart is empty')) {
       return 'Your cart is empty.';
     }
-
-    if (message.contains(
-      'address',
-    )) {
+    if (message.contains('address')) {
       return 'Please enter your delivery address.';
     }
-
-    return 'Unable to complete checkout.';
+    return 'Unable to complete checkout. Please try again.';
   }
 
-  // ============================================================
-  // Build
-  // ============================================================
-
   @override
-  Widget build(
-      BuildContext context,
-      ) {
+  Widget build(BuildContext context) {
+    final padding = bloomPagePadding(MediaQuery.sizeOf(context).width);
+
     return Scaffold(
-      backgroundColor:
-      const Color(0xFFF9F4F1),
-
+      backgroundColor: AppColors.cream,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        backgroundColor:
-        Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-
-        title: Text(
-          'Checkout',
-          style:
-          GoogleFonts.playfairDisplay(
-            fontSize: 24,
-            fontWeight:
-            FontWeight.w600,
-            color:
-            const Color(0xFF4B3439),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: BloomCircleButton(
+            icon: Icons.arrow_back_ios_new_rounded,
+            onTap: () => Navigator.pop(context),
           ),
         ),
+        leadingWidth: 62,
+        title: const Text('Checkout'),
       ),
-
       body: _isLoadingAddress
-          ? const Center(
-        child:
-        CircularProgressIndicator(
-          color:
-          Color(0xFFB86F7B),
-        ),
-      )
-          : SingleChildScrollView(
-        padding:
-        const EdgeInsets.fromLTRB(
-          20,
-          10,
-          20,
-          30,
-        ),
+          ? const BloomLoader()
+          : StreamBuilder<List<CartModel>>(
+              stream: _cartService.getCart(),
+              builder: (context, snapshot) {
+                final items = snapshot.data ?? const <CartModel>[];
 
-        child: Column(
-          crossAxisAlignment:
-          CrossAxisAlignment.start,
+                final total = items.fold<double>(
+                  0,
+                  (sum, item) => sum + item.productPrice * item.quantity,
+                );
 
-          children: [
-            // ==================================================
-            // Delivery Address
-            // ==================================================
-
-            _buildSectionTitle(
-              'Delivery Address',
-              'Where should we deliver your order?',
-            ),
-
-            const SizedBox(
-              height: 14,
-            ),
-
-            TextField(
-              controller:
-              _addressController,
-
-              maxLines: 3,
-
-              style:
-              GoogleFonts.dmSans(
-                fontSize: 14,
-                color:
-                const Color(
-                  0xFF4B3439,
-                ),
-              ),
-
-              decoration:
-              InputDecoration(
-                hintText:
-                'Enter your full delivery address',
-
-                prefixIcon:
-                const Padding(
-                  padding:
-                  EdgeInsets.only(
-                    bottom: 45,
-                  ),
-                  child: Icon(
-                    Icons
-                        .location_on_outlined,
-                    color:
-                    Color(
-                      0xFFB86F7B,
-                    ),
-                  ),
-                ),
-
-                filled: true,
-
-                fillColor:
-                Colors.white,
-
-                contentPadding:
-                const EdgeInsets
-                    .symmetric(
-                  horizontal: 18,
-                  vertical: 17,
-                ),
-
-                border:
-                OutlineInputBorder(
-                  borderRadius:
-                  BorderRadius
-                      .circular(
-                    17,
-                  ),
-                  borderSide:
-                  BorderSide.none,
-                ),
-
-                enabledBorder:
-                OutlineInputBorder(
-                  borderRadius:
-                  BorderRadius
-                      .circular(
-                    17,
-                  ),
-                  borderSide:
-                  BorderSide.none,
-                ),
-
-                focusedBorder:
-                OutlineInputBorder(
-                  borderRadius:
-                  BorderRadius
-                      .circular(
-                    17,
-                  ),
-                  borderSide:
-                  const BorderSide(
-                    color:
-                    Color(
-                      0xFFD39AA4,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(
-              height: 30,
-            ),
-
-            // ==================================================
-            // Order Summary
-            // ==================================================
-
-            _buildSectionTitle(
-              'Order Summary',
-              'Review your products before placing the order.',
-            ),
-
-            const SizedBox(
-              height: 14,
-            ),
-
-            ...widget.items.map(
-                  (item) =>
-                  _buildOrderItem(
-                    item,
-                  ),
-            ),
-
-            const SizedBox(
-              height: 20,
-            ),
-
-            // ==================================================
-            // Total
-            // ==================================================
-
-            Container(
-              width:
-              double.infinity,
-
-              padding:
-              const EdgeInsets.all(
-                18,
-              ),
-
-              decoration:
-              BoxDecoration(
-                color:
-                Colors.white,
-
-                borderRadius:
-                BorderRadius
-                    .circular(
-                  20,
-                ),
-              ),
-
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Total',
-                      style:
-                      GoogleFonts
-                          .dmSans(
-                        fontSize: 17,
-                        fontWeight:
-                        FontWeight
-                            .w700,
-                        color:
-                        const Color(
-                          0xFF4B3439,
+                return Column(
+                  children: [
+                    Expanded(
+                      child: ListView(
+                        padding: EdgeInsets.fromLTRB(padding, 8, padding, 24),
+                        physics: const BouncingScrollPhysics(
+                          parent: AlwaysScrollableScrollPhysics(),
                         ),
+                        children: [
+                          FadeSlideIn(child: _buildAddressSection()),
+                          const SizedBox(height: 22),
+                          FadeSlideIn(
+                            delay: const Duration(milliseconds: 90),
+                            child: _buildPaymentSection(),
+                          ),
+                          const SizedBox(height: 22),
+                          FadeSlideIn(
+                            delay: const Duration(milliseconds: 150),
+                            child: _buildSummarySection(items, total),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-
-                  Text(
-                    '\$${widget.totalAmount.toStringAsFixed(2)}',
-
-                    style:
-                    GoogleFonts
-                        .dmSans(
-                      fontSize: 20,
-                      fontWeight:
-                      FontWeight
-                          .w700,
-                      color:
-                      const Color(
-                        0xFFB86F7B,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                    _buildFooter(padding, total, items.isEmpty),
+                  ],
+                );
+              },
             ),
-
-            const SizedBox(
-              height: 24,
-            ),
-
-            // ==================================================
-            // Place Order Button
-            // ==================================================
-
-            SizedBox(
-              width:
-              double.infinity,
-
-              height: 56,
-
-              child:
-              ElevatedButton(
-                onPressed:
-                _isCheckingOut
-                    ? null
-                    : _placeOrder,
-
-                style:
-                ElevatedButton
-                    .styleFrom(
-                  backgroundColor:
-                  const Color(
-                    0xFFB86F7B,
-                  ),
-
-                  foregroundColor:
-                  Colors.white,
-
-                  disabledBackgroundColor:
-                  const Color(
-                    0xFFD7B9BE,
-                  ),
-
-                  elevation: 0,
-
-                  shape:
-                  RoundedRectangleBorder(
-                    borderRadius:
-                    BorderRadius
-                        .circular(
-                      17,
-                    ),
-                  ),
-                ),
-
-                child:
-                _isCheckingOut
-                    ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child:
-                  CircularProgressIndicator(
-                    strokeWidth:
-                    2,
-                    color:
-                    Colors.white,
-                  ),
-                )
-                    : Text(
-                  'Place Order',
-
-                  style:
-                  GoogleFonts
-                      .dmSans(
-                    fontSize:
-                    15,
-                    fontWeight:
-                    FontWeight
-                        .w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
   // ============================================================
-  // Section Title
+  // Sections
   // ============================================================
 
-  Widget _buildSectionTitle(
-      String title,
-      String subtitle,
-      ) {
+  Widget _buildAddressSection() {
     return Column(
-      crossAxisAlignment:
-      CrossAxisAlignment.start,
-
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-
-          style:
-          GoogleFonts.playfairDisplay(
-            fontSize: 23,
-            fontWeight:
-            FontWeight.w600,
-            color:
-            const Color(0xFF4B3439),
-          ),
-        ),
-
-        const SizedBox(
-          height: 3,
-        ),
-
-        Text(
-          subtitle,
-
-          style:
-          GoogleFonts.dmSans(
-            fontSize: 13,
-            color:
-            const Color(0xFF92797E),
+        _sectionTitle('Delivery Address', Icons.location_on_outlined),
+        const SizedBox(height: 12),
+        BloomCard(
+          padding: const EdgeInsets.all(6),
+          child: TextField(
+            controller: _addressController,
+            maxLines: 3,
+            style: AppText.sans(size: 13.5, height: 1.5),
+            decoration: InputDecoration(
+              filled: false,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              contentPadding: const EdgeInsets.all(14),
+              hintText:
+                  'Street, building, apartment…\nCity, area and landmark',
+              hintStyle: AppText.sans(
+                size: 13,
+                color: AppColors.muted,
+                height: 1.5,
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
-  // ============================================================
-  // Order Item
-  // ============================================================
-
-  Widget _buildOrderItem(
-      CartModel item,
-      ) {
-    final itemTotal =
-        item.productPrice *
-            item.quantity;
-
-    return Container(
-      margin:
-      const EdgeInsets.only(
-        bottom: 12,
-      ),
-
-      padding:
-      const EdgeInsets.all(
-        12,
-      ),
-
-      decoration:
-      BoxDecoration(
-        color:
-        Colors.white,
-
-        borderRadius:
-        BorderRadius.circular(
-          18,
-        ),
-      ),
-
-      child: Row(
-        children: [
-          // Product Image
-          ClipRRect(
-            borderRadius:
-            BorderRadius.circular(
-              13,
-            ),
-
-            child: SizedBox(
-              width: 65,
-              height: 65,
-
-              child: Image.network(
-                item.productImage,
-
-                fit: BoxFit.cover,
-
-                errorBuilder:
-                    (
-                    context,
-                    error,
-                    stackTrace,
-                    ) {
-                  return Container(
-                    color:
-                    const Color(
-                      0xFFF4E8E5,
+  Widget _buildPaymentSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('Payment Method', Icons.credit_card_outlined),
+        const SizedBox(height: 12),
+        BloomCard(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: const BoxDecoration(
+                  color: AppColors.forestSoft,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.payments_outlined,
+                  size: 20,
+                  color: AppColors.forest,
+                ),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Cash on Delivery',
+                      style: AppText.sans(size: 13.5, weight: FontWeight.w600),
                     ),
+                    Text(
+                      'Pay the courier when your flowers arrive.',
+                      style: AppText.sans(size: 11.5, color: AppColors.muted),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.forest,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
-                    child:
-                    const Icon(
-                      Icons
-                          .image_not_supported_outlined,
-                      color:
-                      Color(
-                        0xFFB86F7B,
+  Widget _buildSummarySection(List<CartModel> items, double total) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('Order Summary', Icons.receipt_long_outlined),
+        const SizedBox(height: 12),
+        BloomCard(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              if (items.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'Your cart is empty.',
+                    style: AppText.sans(size: 13, color: AppColors.muted),
+                  ),
+                ),
+              for (final item in items) ...[
+                Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: BloomImage(url: item.productImage),
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-          ),
-
-          const SizedBox(
-            width: 12,
-          ),
-
-          // Product Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-              CrossAxisAlignment.start,
-
-              children: [
-                Text(
-                  item.productName,
-
-                  maxLines: 2,
-
-                  overflow:
-                  TextOverflow.ellipsis,
-
-                  style:
-                  GoogleFonts.dmSans(
-                    fontSize: 14,
-                    fontWeight:
-                    FontWeight.w700,
-                    color:
-                    const Color(
-                      0xFF4B3439,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.productName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.sans(
+                              size: 13,
+                              weight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            'Qty ${item.quantity}',
+                            style: AppText.sans(
+                              size: 11.5,
+                              color: AppColors.muted,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-
-                const SizedBox(
-                  height: 5,
-                ),
-
-                Text(
-                  'Qty: ${item.quantity}',
-
-                  style:
-                  GoogleFonts.dmSans(
-                    fontSize: 12,
-                    color:
-                    const Color(
-                      0xFF92797E,
+                    BloomPrice(
+                      value: item.productPrice * item.quantity,
+                      size: 13.5,
                     ),
-                  ),
+                  ],
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(height: 1, color: AppColors.line),
                 ),
               ],
-            ),
+              _row('Items total', '\$${_money(total)}'),
+              const SizedBox(height: 8),
+              _row('Delivery fee', 'Free', valueColor: AppColors.success),
+            ],
           ),
+        ),
+      ],
+    );
+  }
 
-          Text(
-            '\$${itemTotal.toStringAsFixed(2)}',
-
-            style:
-            GoogleFonts.dmSans(
-              fontSize: 14,
-              fontWeight:
-              FontWeight.w700,
-              color:
-              const Color(
-                0xFFB86F7B,
+  Widget _buildFooter(double padding, double total, bool disabled) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        padding,
+        16,
+        padding,
+        MediaQuery.paddingOf(context).bottom + 16,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.taupe.withValues(alpha: 0.18),
+            blurRadius: 26,
+            offset: const Offset(0, -6),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Total',
+                style: AppText.sans(size: 15, weight: FontWeight.w600),
               ),
-            ),
+              const Spacer(),
+              BloomPrice(value: total, size: 20),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ElevatedButton(
+            onPressed: _isPlacingOrder || disabled ? null : _placeOrder,
+            child: _isPlacingOrder
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text('Place Order'),
           ),
         ],
       ),
     );
   }
 
-  // ============================================================
-  // SnackBar
-  // ============================================================
+  Widget _sectionTitle(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 17, color: AppColors.coral),
+        const SizedBox(width: 8),
+        Text(title, style: AppText.serif(size: 18)),
+      ],
+    );
+  }
 
-  void _showMessage(
-      String message,
-      ) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      SnackBar(
-        content:
-        Text(message),
-
-        behavior:
-        SnackBarBehavior.floating,
-
-        backgroundColor:
-        const Color(0xFF5A3D43),
-
-        margin:
-        const EdgeInsets.all(
-          16,
-        ),
-
-        shape:
-        RoundedRectangleBorder(
-          borderRadius:
-          BorderRadius.circular(
-            14,
+  Widget _row(String label, String value, {Color? valueColor}) {
+    return Row(
+      children: [
+        Text(label, style: AppText.sans(size: 13, color: AppColors.muted)),
+        const Spacer(),
+        Text(
+          value,
+          style: AppText.sans(
+            size: 13,
+            weight: FontWeight.w600,
+            color: valueColor ?? AppColors.ink,
           ),
         ),
-      ),
+      ],
     );
+  }
+
+  static String _money(double value) {
+    return value.toStringAsFixed(value == value.roundToDouble() ? 0 : 2);
   }
 }

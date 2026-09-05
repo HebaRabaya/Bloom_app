@@ -68,10 +68,18 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/images/splash_background.jpg
+    - assets/images/auth_screen_background.jpg
+    - assets/images/home_hero_banner.png
+    - assets/images/empty_state_illustration.png
+    - assets/images/onboarding_fresh_flowers.png
+    - assets/images/onboarding_same_day_delivery.png
+    - assets/images/onboarding_every_occasion.png
+    - assets/images/category_bouquets.png
+    - assets/images/category_plants.png
+    - assets/images/category_gifts.png
+    - assets/images/category_occasions.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -99,6 +107,10 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 flutter_native_splash:
-    color: "#FFF0F5"
+    color: "#C4B49A"
+    background_image: assets/images/splash_background.jpg
     android: true
     ios: true
+    android_12:
+      color: "#C4B49A"
+      icon_background_color: "#C4B49A"

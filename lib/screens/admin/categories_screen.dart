@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/category_service.dart';
+import '../../theme/app_assets.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/bloom_animations.dart';
+import '../../widgets/bloom_ui.dart';
 
-class CategoriesScreen
-    extends StatefulWidget {
+class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
 
   @override
-  State<CategoriesScreen> createState() =>
-      _CategoriesScreenState();
+  State<CategoriesScreen> createState() => _CategoriesScreenState();
 }
 
-class _CategoriesScreenState
-    extends State<CategoriesScreen> {
-  final CategoryService _categoryService =
-  CategoryService();
+class _CategoriesScreenState extends State<CategoriesScreen> {
+  final _categoryService = CategoryService();
+  final _categoryController = TextEditingController();
 
-  final TextEditingController
-  _categoryController =
-  TextEditingController();
+  bool _isAdding = false;
 
   @override
   void dispose() {
@@ -27,203 +26,212 @@ class _CategoriesScreenState
     super.dispose();
   }
 
-  // ============================================================
-  // Add Category
-  // ============================================================
-
   Future<void> _addCategory() async {
-    final name =
-    _categoryController.text.trim();
+    final name = _categoryController.text.trim();
+    if (name.isEmpty) return;
 
-    if (name.isEmpty) {
-      return;
+    setState(() => _isAdding = true);
+
+    try {
+      await _categoryService.addCategory(name);
+      _categoryController.clear();
+      if (!mounted) return;
+      showBloomSnack(context, '$name added');
+    } catch (_) {
+      if (!mounted) return;
+      showBloomSnack(context, 'Unable to add this category.', isError: true);
+    } finally {
+      if (mounted) setState(() => _isAdding = false);
     }
-
-    await _categoryService.addCategory(
-      name,
-    );
-
-    _categoryController.clear();
   }
 
-  // ============================================================
-  // Delete Category
-  // ============================================================
+  Future<void> _deleteCategory(String id, String name) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete category?'),
+        content: Text(
+          'Products already using "$name" will keep their label.',
+          style: AppText.sans(size: 13, color: AppColors.muted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              minimumSize: const Size(120, 44),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
 
-  Future<void> _deleteCategory(
-      String id,
-      ) async {
-    await _categoryService
-        .deleteCategory(id);
+    if (confirmed != true) return;
+
+    try {
+      await _categoryService.deleteCategory(id);
+    } catch (_) {
+      if (!mounted) return;
+      showBloomSnack(context, 'Unable to delete this category.', isError: true);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final padding = bloomPagePadding(MediaQuery.sizeOf(context).width);
+
     return Scaffold(
-      backgroundColor:
-      const Color(0xFFF9F4F1),
-
-      appBar: AppBar(
-        title: Text(
-          'Categories',
-          style:
-          GoogleFonts.playfairDisplay(
-            fontWeight:
-            FontWeight.w600,
-          ),
-        ),
-
-        centerTitle: true,
-
-        backgroundColor:
-        Colors.transparent,
-
-        elevation: 0,
-      ),
-
-      body: Padding(
-        padding:
-        const EdgeInsets.all(20),
-
+      backgroundColor: AppColors.cream,
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
-            // ==================================================
-            // Add Category
-            // ==================================================
-
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller:
-                    _categoryController,
-
-                    decoration:
-                    InputDecoration(
-                      hintText:
-                      'Category name',
-
-                      filled: true,
-
-                      fillColor:
-                      Colors.white,
-
-                      border:
-                      OutlineInputBorder(
-                        borderRadius:
-                        BorderRadius.circular(
-                          16,
-                        ),
-
-                        borderSide:
-                        BorderSide.none,
+            Padding(
+              padding: EdgeInsets.fromLTRB(padding, 16, padding, 0),
+              child: FadeSlideIn(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Categories', style: AppText.serif(size: 24)),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Group your flowers so customers find them faster.',
+                      style: AppText.sans(
+                        size: 12.5,
+                        color: AppColors.muted,
                       ),
                     ),
-                  ),
-                ),
-
-                const SizedBox(width: 10),
-
-                ElevatedButton(
-                  onPressed:
-                  _addCategory,
-
-                  style:
-                  ElevatedButton.styleFrom(
-                    backgroundColor:
-                    const Color(
-                      0xFFB86F7B,
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _categoryController,
+                            textInputAction: TextInputAction.done,
+                            onSubmitted: (_) => _addCategory(),
+                            style: AppText.sans(size: 13.5),
+                            decoration: const InputDecoration(
+                              hintText: 'Roses, Plants, Gifts…',
+                              prefixIcon: Icon(
+                                Icons.local_florist_outlined,
+                                size: 19,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        SizedBox(
+                          width: 54,
+                          height: 54,
+                          child: ElevatedButton(
+                            onPressed: _isAdding ? null : _addCategory,
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(54, 54),
+                              shape: const CircleBorder(),
+                            ),
+                            child: _isAdding
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.add_rounded, size: 22),
+                          ),
+                        ),
+                      ],
                     ),
-
-                    foregroundColor:
-                    Colors.white,
-
-                    padding:
-                    const EdgeInsets.all(
-                      18,
-                    ),
-                  ),
-
-                  child:
-                  const Icon(Icons.add),
+                  ],
                 ),
-              ],
+              ),
             ),
-
-            const SizedBox(height: 25),
-
-            // ==================================================
-            // Categories List
-            // ==================================================
-
+            const SizedBox(height: 18),
             Expanded(
               child: StreamBuilder(
-                stream: _categoryService
-                    .getCategories(),
-
-                builder:
-                    (context, snapshot) {
+                stream: _categoryService.getCategories(),
+                builder: (context, snapshot) {
                   if (snapshot.hasError) {
-                    return const Center(
-                      child: Text(
-                        'Something went wrong.',
-                      ),
+                    return const BloomEmptyState(
+                      title: 'Something went wrong',
+                      message: 'We could not load your categories.',
+                      icon: Icons.error_outline_rounded,
                     );
                   }
 
-                  if (!snapshot.hasData) {
-                    return const Center(
-                      child:
-                      CircularProgressIndicator(),
-                    );
-                  }
+                  if (!snapshot.hasData) return const BloomLoader();
 
-                  final categories =
-                      snapshot.data!.docs;
+                  final categories = snapshot.data!.docs;
 
                   if (categories.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'No categories yet.',
-                      ),
+                    return const BloomEmptyState(
+                      title: 'No categories yet',
+                      message:
+                          'Add your first collection above — try Roses, '
+                          'Plants or Gifts.',
+                      icon: Icons.category_outlined,
                     );
                   }
 
-                  return ListView.builder(
-                    itemCount:
-                    categories.length,
+                  return ListView.separated(
+                    padding: EdgeInsets.fromLTRB(padding, 2, padding, 24),
+                    physics: const BouncingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    ),
+                    itemCount: categories.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final document = categories[index];
+                      final name =
+                          document.data()['name']?.toString() ?? '';
 
-                    itemBuilder:
-                        (context, index) {
-                      final category =
-                      categories[index];
-
-                      final data =
-                      category.data();
-
-                      return Card(
-                        child: ListTile(
-                          leading: const Icon(
-                            Icons.category_outlined,
+                      return FadeSlideIn.staggered(
+                        key: ValueKey(document.id),
+                        index: index,
+                        child: BloomCard(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
                           ),
-
-                          title: Text(
-                            data['name'] ?? '',
-                          ),
-
-                          trailing:
-                          IconButton(
-                            onPressed: () {
-                              _deleteCategory(
-                                category.id,
-                              );
-                            },
-
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color:
-                              Colors.red,
-                            ),
+                          child: Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: Image.asset(
+                                  AppAssets.categoryFallback(name),
+                                  width: 46,
+                                  height: 46,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  style: AppText.sans(
+                                    size: 14,
+                                    weight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () =>
+                                    _deleteCategory(document.id, name),
+                                icon: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 19,
+                                  color: AppColors.danger,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );

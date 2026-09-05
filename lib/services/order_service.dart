@@ -45,7 +45,10 @@ class OrderService {
   // Checkout
   // ============================================================
 
-  Future<void> checkout({
+  // ملاحظة: بترجع الـ ID تبع الطلب حتى نقدر نعرضه
+  // داخل شاشة نجاح الطلب.
+
+  Future<String> checkout({
     required String address,
   }) async {
     final user =
@@ -331,6 +334,8 @@ class OrderService {
         }
       },
     );
+
+    return orderReference.id;
   }
 
   // ============================================================

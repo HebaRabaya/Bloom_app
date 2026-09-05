@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../ profile/profile_screen.dart';
+import '../../widgets/bloom_nav_bar.dart';
+import '../profile/profile_screen.dart';
 import 'add_product_screen.dart';
 import 'admin_home_screen.dart';
 import 'categories_screen.dart';
@@ -10,86 +11,62 @@ class AdminMainScreen extends StatefulWidget {
   const AdminMainScreen({super.key});
 
   @override
-  State<AdminMainScreen> createState() =>
-      _AdminMainScreenState();
+  State<AdminMainScreen> createState() => AdminMainScreenState();
+
+  static AdminMainScreenState? of(BuildContext context) {
+    return context.findAncestorStateOfType<AdminMainScreenState>();
+  }
 }
 
-class _AdminMainScreenState
-    extends State<AdminMainScreen> {
+class AdminMainScreenState extends State<AdminMainScreen> {
   int _currentIndex = 0;
 
-  // ============================================================
-  // Admin Screens
-  // ============================================================
-
-  final List<Widget> _screens =  [
-    AdminHomeScreen(),
-    AddProductScreen(),
-    CategoriesScreen(),
-    OrdersScreen(),
-    ProfileScreen(),
-  ];
+  void goToTab(int index) {
+    if (index == _currentIndex) return;
+    setState(() => _currentIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // الشاشة الحالية
-      body: _screens[_currentIndex],
-
-      // ========================================================
-      // Bottom Navigation
-      // ========================================================
-
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-
-        indicatorColor:
-        const Color(0xFFE8D1D4),
-
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-
-        destinations: const [
-          NavigationDestination(
-            icon:
-            Icon(Icons.home_outlined),
-            selectedIcon:
-            Icon(Icons.home),
-            label: 'Home',
+      resizeToAvoidBottomInset: true,
+      body: IndexedStack(
+        index: _currentIndex,
+        children: const [
+          AdminHomeScreen(),
+          AddProductScreen(),
+          CategoriesScreen(),
+          OrdersScreen(),
+          ProfileScreen(isAdmin: true),
+        ],
+      ),
+      bottomNavigationBar: BloomNavBar(
+        currentIndex: _currentIndex,
+        onChanged: goToTab,
+        items: const [
+          BloomNavItem(
+            icon: Icons.dashboard_outlined,
+            activeIcon: Icons.dashboard_rounded,
+            label: 'Dashboard',
           ),
-
-          NavigationDestination(
-            icon:
-            Icon(Icons.add_box_outlined),
-            selectedIcon:
-            Icon(Icons.add_box),
+          BloomNavItem(
+            icon: Icons.add_box_outlined,
+            activeIcon: Icons.add_box_rounded,
             label: 'Add',
           ),
-
-          NavigationDestination(
-            icon:
-            Icon(Icons.category_outlined),
-            selectedIcon:
-            Icon(Icons.category),
+          BloomNavItem(
+            icon: Icons.category_outlined,
+            activeIcon: Icons.category_rounded,
             label: 'Categories',
           ),
-
-          NavigationDestination(
-            icon:
-            Icon(Icons.receipt_long_outlined),
-            selectedIcon:
-            Icon(Icons.receipt_long),
+          BloomNavItem(
+            icon: Icons.receipt_long_outlined,
+            activeIcon: Icons.receipt_long_rounded,
             label: 'Orders',
           ),
-
-          NavigationDestination(
-            icon:
-            Icon(Icons.person_outline),
-            selectedIcon:
-            Icon(Icons.person),
+          BloomNavItem(
+            icon: Icons.person_outline_rounded,
+            activeIcon: Icons.person_rounded,
             label: 'Profile',
           ),
         ],

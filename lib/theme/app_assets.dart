@@ -1,7 +1,5 @@
 class AppAssets {
   static const splashBackground = 'assets/images/splash_background.jpg';
-  static const authLoginSignupBackground =
-      'assets/images/auth_login_signup_background.png';
   static const authScreenBackground =
       'assets/images/auth_screen_background.jpg';
   static const homeHeroBanner = 'assets/images/home_hero_banner.png';
