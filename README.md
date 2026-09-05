@@ -275,22 +275,6 @@ flutter run
 
 ---
 
-## 🔮 Future Improvements
-
-Planned or potential improvements include:
-
-* Online payment integration
-* Push notifications
-* Delivery location tracking
-* Gift notes and occasions
-* Product reviews and ratings
-* Personalized recommendations
-* Advanced analytics
-* Automated testing
-* Multi-language support
-
----
-
 ## 📌 Project Status
 
 **Active Development**
