@@ -7,6 +7,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_ui.dart';
+import '../../widgets/bloom_wow.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final ProductModel product;
@@ -28,6 +29,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
   int _quantity = 1;
   bool _isAdding = false;
+  bool _justAdded = false;
+  final _addButtonKey = GlobalKey();
 
   static const List<(IconData, String)> _highlights = [
     (Icons.local_florist_rounded, 'Fresh Flowers'),
@@ -56,6 +59,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         context,
         '$_quantity × ${_product.name} added to your cart',
       );
+      final origin = _addButtonKey.currentContext ?? context;
+      if (origin.mounted) {
+        BloomCartFlight.launch(origin, imageUrl: _product.imageUrl);
+      }
+      setState(() {
+        _isAdding = false;
+        _justAdded = true;
+      });
+      await Future.delayed(const Duration(milliseconds: 1400));
+      if (mounted) setState(() => _justAdded = false);
     } catch (e) {
       if (!mounted) return;
       showBloomSnack(
@@ -65,6 +78,19 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       );
     } finally {
       if (mounted) setState(() => _isAdding = false);
+    }
+  }
+
+  Future<void> _likeFromPhoto() async {
+    try {
+      await _favoriteService.addToFavorites(_product);
+    } catch (e) {
+      if (!mounted) return;
+      showBloomSnack(
+        context,
+        e.toString().replaceFirst('Exception: ', ''),
+        isError: true,
+      );
     }
   }
 
@@ -100,13 +126,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 child: SizedBox(
                   height: imageHeight,
                   width: double.infinity,
-                  child: Hero(
-                    tag: widget.heroTag,
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        bottom: Radius.circular(34),
+                  child: BloomDoubleTapLike(
+                    onLike: _likeFromPhoto,
+                    child: Hero(
+                      tag: widget.heroTag,
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(34),
+                        ),
+                        child: BloomImage(url: _product.imageUrl),
                       ),
-                      child: BloomImage(url: _product.imageUrl),
                     ),
                   ),
                 ),
@@ -154,9 +183,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                   ? 'Only ${_product.quantity} left'
                                   : 'In stock',
                               outOfStock ? AppColors.blush : Colors.white,
-                              outOfStock
-                                  ? AppColors.danger
-                                  : AppColors.muted,
+                              outOfStock ? AppColors.danger : AppColors.muted,
                             ),
                           ],
                         ),
@@ -209,8 +236,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               onDecrease: _quantity > 1
                                   ? () => setState(() => _quantity--)
                                   : null,
-                              onIncrease:
-                                  _quantity < _product.quantity
+                              onIncrease: _quantity < _product.quantity
                                   ? () => setState(() => _quantity++)
                                   : null,
                             ),
@@ -243,12 +269,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     final isFavorite =
                         snapshot.data?.contains(_product.id) ?? false;
 
-                    return BloomCircleButton(
-                      icon: isFavorite
-                          ? Icons.favorite
-                          : Icons.favorite_border_rounded,
-                      color: AppColors.coral,
+                    return BloomHeartButton(
+                      isFavorite: isFavorite,
                       onTap: _toggleFavorite,
+                      size: 42,
                     );
                   },
                 ),
@@ -261,59 +285,99 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             left: 0,
             right: 0,
             bottom: 0,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(
-                24,
-                16,
-                24,
-                MediaQuery.paddingOf(context).bottom + 18,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.cream,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(28),
+            child: FadeSlideIn(
+              offsetY: 28,
+              duration: const Duration(milliseconds: 520),
+              child: Container(
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  16,
+                  24,
+                  MediaQuery.paddingOf(context).bottom + 18,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.taupe.withValues(alpha: 0.22),
-                    blurRadius: 26,
-                    offset: const Offset(0, -6),
+                decoration: BoxDecoration(
+                  color: AppColors.cream,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
                   ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Total',
-                        style: AppText.sans(size: 11, color: AppColors.muted),
-                      ),
-                      BloomPrice(
-                        value: _product.price * _quantity,
-                        size: 19,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 18),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: outOfStock || _isAdding ? null : _addToCart,
-                      child: _isAdding
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(outOfStock ? 'Sold out' : 'Add to Cart'),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.taupe.withValues(alpha: 0.22),
+                      blurRadius: 26,
+                      offset: const Offset(0, -6),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Total',
+                          style: AppText.sans(size: 11, color: AppColors.muted),
+                        ),
+                        BloomPrice(value: _product.price * _quantity, size: 19),
+                      ],
+                    ),
+                    const SizedBox(width: 18),
+                    Expanded(
+                      child: AnimatedScale(
+                        scale: _justAdded ? 1.04 : 1,
+                        duration: const Duration(milliseconds: 480),
+                        curve: Curves.elasticOut,
+                        child: ElevatedButton(
+                          key: _addButtonKey,
+                          onPressed: outOfStock || _isAdding || _justAdded
+                              ? null
+                              : _addToCart,
+                          style: _justAdded
+                              ? ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.success,
+                                  disabledBackgroundColor: AppColors.success,
+                                  disabledForegroundColor: Colors.white,
+                                )
+                              : null,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 280),
+                            child: _isAdding
+                                ? const SizedBox(
+                                    key: ValueKey('loading'),
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : _justAdded
+                                ? Row(
+                                    key: const ValueKey('added'),
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.check_rounded, size: 18),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Added',
+                                        style: AppText.sans(
+                                          size: 14,
+                                          weight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Text(
+                                    outOfStock ? 'Sold out' : 'Add to Cart',
+                                    key: const ValueKey('cta'),
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -354,10 +418,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         children: [
           Icon(icon, size: 14, color: AppColors.coral),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: AppText.sans(size: 11.5, weight: FontWeight.w500),
-          ),
+          Text(label, style: AppText.sans(size: 11.5, weight: FontWeight.w500)),
         ],
       ),
     );

@@ -111,9 +111,7 @@ class _SplashScreenState extends State<SplashScreen>
       final hasSeenOnboarding =
           preferences.getBool('hasSeenOnboarding') ?? false;
 
-      return hasSeenOnboarding
-          ? const LoginScreen()
-          : const OnboardingScreen();
+      return hasSeenOnboarding ? const LoginScreen() : const OnboardingScreen();
     } catch (_) {
       return const LoginScreen();
     }
@@ -131,10 +129,13 @@ class _SplashScreenState extends State<SplashScreen>
             return Stack(
               fit: StackFit.expand,
               children: [
-                Image.asset(
-                  AppAssets.splashBackground,
-                  fit: BoxFit.cover,
-                  alignment: const Alignment(0, 0.12),
+                Transform.scale(
+                  scale: 1.0 + (_controller.value * 0.08),
+                  child: Image.asset(
+                    AppAssets.splashBackground,
+                    fit: BoxFit.cover,
+                    alignment: const Alignment(0, 0.12),
+                  ),
                 ),
                 const DecoratedBox(
                   decoration: BoxDecoration(
@@ -160,10 +161,13 @@ class _SplashScreenState extends State<SplashScreen>
                           children: [
                             Opacity(
                               opacity: _markFade.value,
-                              child: BloomMark(
-                                size: 72,
-                                color: AppColors.roseGold,
-                                progress: _markDraw.value,
+                              child: Transform.scale(
+                                scale: 0.86 + _markDraw.value * 0.14,
+                                child: BloomMark(
+                                  size: 72,
+                                  color: AppColors.roseGold,
+                                  progress: _markDraw.value,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 16),

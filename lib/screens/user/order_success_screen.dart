@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
+import '../../widgets/bloom_wow.dart';
 
 /// Confirmation screen shown right after a successful checkout.
 ///
@@ -20,7 +21,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 900),
+    duration: const Duration(milliseconds: 1400),
   )..forward();
 
   late final Animation<double> _pop = CurvedAnimation(
@@ -65,149 +66,166 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
       canPop: false,
       child: Scaffold(
         backgroundColor: AppColors.cream,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, _) {
-                    return SizedBox(
-                      width: 170,
-                      height: 170,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          _rippleRing(0.0),
-                          _rippleRing(0.25),
-                          Transform.scale(
-                            scale: _pop.value,
-                            child: Container(
-                              width: 86,
-                              height: 86,
-                              decoration: const BoxDecoration(
-                                color: AppColors.forest,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.check_rounded,
-                                color: Colors.white,
-                                size: 42,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 10),
-
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 350),
-                  child: Text(
-                    'Order Placed!',
-                    style: AppText.serif(size: 27),
+        body: Stack(
+          children: [
+            const BloomCelebration(),
+            const Positioned.fill(
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: 0.55,
+                  child: BloomPetalField(
+                    mood: BloomPetalMood.garden,
+                    count: 16,
                   ),
                 ),
-                const SizedBox(height: 10),
+              ),
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 30),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, _) {
+                        return SizedBox(
+                          width: 210,
+                          height: 210,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              _rippleRing(0.0),
+                              _rippleRing(0.22),
+                              _rippleRing(0.42),
+                              Transform.scale(
+                                scale: _pop.value,
+                                child: Container(
+                                  width: 86,
+                                  height: 86,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.forest,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check_rounded,
+                                    color: Colors.white,
+                                    size: 42,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 10),
 
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 420),
-                  child: Text.rich(
-                    TextSpan(
-                      text: 'Your order  ',
-                      style: AppText.sans(
-                        size: 13.5,
-                        color: AppColors.muted,
-                        height: 1.7,
+                    FadeSlideIn(
+                      delay: const Duration(milliseconds: 350),
+                      child: Text(
+                        'Order Placed!',
+                        style: AppText.serif(size: 27),
                       ),
-                      children: [
+                    ),
+                    const SizedBox(height: 10),
+
+                    FadeSlideIn(
+                      delay: const Duration(milliseconds: 420),
+                      child: Text.rich(
                         TextSpan(
-                          text: _reference,
+                          text: 'Your order  ',
                           style: AppText.sans(
                             size: 13.5,
-                            weight: FontWeight.w700,
-                            color: AppColors.coral,
-                          ),
-                        ),
-                        const TextSpan(
-                          text: '\nhas been successfully placed.',
-                        ),
-                      ],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 26),
-
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 500),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 22,
-                      vertical: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: AppColors.line),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Estimated Delivery',
-                          style: AppText.sans(
-                            size: 11.5,
                             color: AppColors.muted,
-                            letterSpacing: 0.6,
+                            height: 1.7,
                           ),
+                          children: [
+                            TextSpan(
+                              text: _reference,
+                              style: AppText.sans(
+                                size: 13.5,
+                                weight: FontWeight.w700,
+                                color: AppColors.coral,
+                              ),
+                            ),
+                            const TextSpan(
+                              text: '\nhas been successfully placed.',
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _deliveryWindow,
-                          style: AppText.sans(
-                            size: 14,
-                            weight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 38),
-
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 580),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context, 'orders'),
-                      child: const Text('View Order'),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 640),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context, 'home'),
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: AppColors.blush,
-                        side: BorderSide.none,
+                        textAlign: TextAlign.center,
                       ),
-                      child: const Text('Continue Shopping'),
                     ),
-                  ),
+                    const SizedBox(height: 26),
+
+                    FadeSlideIn(
+                      delay: const Duration(milliseconds: 500),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 22,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: AppColors.line),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              'Estimated Delivery',
+                              style: AppText.sans(
+                                size: 11.5,
+                                color: AppColors.muted,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _deliveryWindow,
+                              style: AppText.sans(
+                                size: 14,
+                                weight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 38),
+
+                    FadeSlideIn(
+                      delay: const Duration(milliseconds: 580),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context, 'orders'),
+                          child: const Text('View Order'),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    FadeSlideIn(
+                      delay: const Duration(milliseconds: 640),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context, 'home'),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: AppColors.blush,
+                            side: BorderSide.none,
+                          ),
+                          child: const Text('Continue Shopping'),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

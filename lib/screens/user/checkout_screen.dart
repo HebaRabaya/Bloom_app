@@ -53,8 +53,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     try {
       final document = await _profileService.getProfile(user.uid);
-      _addressController.text =
-          document.data()?['address']?.toString() ?? '';
+      _addressController.text = document.data()?['address']?.toString() ?? '';
     } catch (_) {
       if (!mounted) return;
       showBloomSnack(context, 'Unable to load your saved address.');
@@ -97,9 +96,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       Navigator.pushReplacement(
         context,
-        BloomPageRoute(
-          builder: (_) => OrderSuccessScreen(orderId: orderId),
-        ),
+        BloomPageRoute(builder: (_) => OrderSuccessScreen(orderId: orderId)),
       );
     } catch (e) {
       if (!mounted) return;
@@ -207,8 +204,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
               contentPadding: const EdgeInsets.all(14),
-              hintText:
-                  'Street, building, apartment…\nCity, area and landmark',
+              hintText: 'Street, building, apartment…\nCity, area and landmark',
               hintStyle: AppText.sans(
                 size: 13,
                 color: AppColors.muted,

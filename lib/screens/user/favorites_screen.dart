@@ -7,6 +7,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_ui.dart';
+import '../../widgets/bloom_wow.dart';
 import 'product_details_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {
@@ -35,10 +36,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
   }
 
-  Future<void> _addToCart(ProductModel product) async {
+  Future<void> _addToCart(ProductModel product, BuildContext origin) async {
     try {
       await _cartService.addToCart(productId: product.id);
       if (!mounted) return;
+      if (origin.mounted) {
+        BloomCartFlight.launch(origin, imageUrl: product.imageUrl);
+      }
       showBloomSnack(context, '${product.name} added to your cart');
     } catch (e) {
       if (!mounted) return;
@@ -86,6 +90,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               icon: Icons.favorite_border_rounded,
               actionLabel: 'Find something you love',
               onAction: () => Navigator.pop(context),
+              mood: BloomPetalMood.favorite,
             );
           }
 
@@ -161,7 +166,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                 const Spacer(),
                                 if (product.quantity > 0)
                                   TextButton(
-                                    onPressed: () => _addToCart(product),
+                                    onPressed: () =>
+                                        _addToCart(product, context),
                                     style: TextButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 10,

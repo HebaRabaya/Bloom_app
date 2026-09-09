@@ -51,6 +51,7 @@ class ProductCard extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(8),
                 child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
                     Positioned.fill(
                       child: ClipRRect(
@@ -66,7 +67,7 @@ class ProductCard extends StatelessWidget {
                       Positioned(
                         top: 6,
                         right: 6,
-                        child: _HeartButton(
+                        child: BloomHeartButton(
                           isFavorite: isFavorite,
                           onTap: onFavorite!,
                         ),
@@ -124,9 +125,10 @@ class ProductCard extends StatelessWidget {
                         child: BloomPrice(value: product.price, size: 14),
                       ),
                       if (onAdd != null)
-                        _AddButton(
+                        BloomCartAddButton(
                           enabled: !outOfStock,
                           onTap: onAdd!,
+                          flightImageUrl: product.imageUrl,
                         ),
                     ],
                   ),
@@ -134,69 +136,6 @@ class ProductCard extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HeartButton extends StatelessWidget {
-  final bool isFavorite;
-  final VoidCallback onTap;
-
-  const _HeartButton({required this.isFavorite, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.92),
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: SizedBox(
-          width: 30,
-          height: 30,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 260),
-            transitionBuilder: (child, animation) {
-              return ScaleTransition(scale: animation, child: child);
-            },
-            child: Icon(
-              isFavorite ? Icons.favorite : Icons.favorite_border_rounded,
-              key: ValueKey(isFavorite),
-              size: 16,
-              color: AppColors.coral,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AddButton extends StatelessWidget {
-  final bool enabled;
-  final VoidCallback onTap;
-
-  const _AddButton({required this.enabled, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: enabled ? AppColors.forest : AppColors.line,
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        child: SizedBox(
-          width: 28,
-          height: 28,
-          child: Icon(
-            Icons.add_rounded,
-            size: 16,
-            color: enabled ? Colors.white : AppColors.taupe,
-          ),
         ),
       ),
     );

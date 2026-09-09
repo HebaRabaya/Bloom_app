@@ -6,6 +6,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_ui.dart';
+import '../../widgets/bloom_luxe.dart';
 import 'checkout_screen.dart';
 import 'user_main_screen.dart';
 
@@ -99,8 +100,10 @@ class _CartScreenState extends State<CartScreen> {
 
                   final items = snapshot.data ?? const <CartModel>[];
 
+                  Widget body;
                   if (items.isEmpty) {
-                    return BloomEmptyState(
+                    body = BloomEmptyState(
+                      key: const ValueKey('empty-cart'),
                       title: 'Your cart is empty',
                       message:
                           'Pick a bouquet you love and it will wait for you '
@@ -108,52 +111,69 @@ class _CartScreenState extends State<CartScreen> {
                       icon: Icons.shopping_bag_outlined,
                       actionLabel: 'Start shopping',
                       onAction: () => UserMainScreen.of(context)?.goToTab(0),
+                      mood: BloomPetalMood.cart,
+                    );
+                  } else {
+                    final subtotal = items.fold<double>(
+                      0,
+                      (sum, item) => sum + item.productPrice * item.quantity,
+                    );
+
+                    body = Column(
+                      key: const ValueKey('cart-list'),
+                      children: [
+                        Expanded(
+                          child: ListView.separated(
+                            padding: EdgeInsets.fromLTRB(
+                              padding,
+                              12,
+                              padding,
+                              12,
+                            ),
+                            physics: const BouncingScrollPhysics(
+                              parent: AlwaysScrollableScrollPhysics(),
+                            ),
+                            itemCount: items.length + 1,
+                            separatorBuilder: (_, index) => index == 0
+                                ? const SizedBox.shrink()
+                                : const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              if (index == 0) {
+                                return BloomLivingVase(items: items);
+                              }
+
+                              final item = items[index - 1];
+
+                              return FadeSlideIn.staggered(
+                                key: ValueKey(item.productId),
+                                index: index,
+                                child: _CartTile(
+                                  item: item,
+                                  onIncrease: () => _run(
+                                    () => _cartService.increaseQuantity(item),
+                                  ),
+                                  onDecrease: () => _run(
+                                    () => _cartService.decreaseQuantity(item),
+                                  ),
+                                  onRemove: () => _confirmRemove(item),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        FadeSlideIn(
+                          offsetY: 22,
+                          child: _buildSummary(padding, subtotal, items.length),
+                        ),
+                      ],
                     );
                   }
 
-                  final subtotal = items.fold<double>(
-                    0,
-                    (sum, item) => sum + item.productPrice * item.quantity,
-                  );
-
-                  return Column(
-                    children: [
-                      Expanded(
-                        child: ListView.separated(
-                          padding: EdgeInsets.fromLTRB(
-                            padding,
-                            12,
-                            padding,
-                            12,
-                          ),
-                          physics: const BouncingScrollPhysics(
-                            parent: AlwaysScrollableScrollPhysics(),
-                          ),
-                          itemCount: items.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final item = items[index];
-
-                            return FadeSlideIn.staggered(
-                              key: ValueKey(item.productId),
-                              index: index,
-                              child: _CartTile(
-                                item: item,
-                                onIncrease: () => _run(
-                                  () => _cartService.increaseQuantity(item),
-                                ),
-                                onDecrease: () => _run(
-                                  () => _cartService.decreaseQuantity(item),
-                                ),
-                                onRemove: () => _confirmRemove(item),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      _buildSummary(padding, subtotal, items.length),
-                    ],
+                  return AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 480),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    child: body,
                   );
                 },
               ),
@@ -211,10 +231,7 @@ class _CartScreenState extends State<CartScreen> {
   Widget _summaryRow(String label, String value, {Color? valueColor}) {
     return Row(
       children: [
-        Text(
-          label,
-          style: AppText.sans(size: 13, color: AppColors.muted),
-        ),
+        Text(label, style: AppText.sans(size: 13, color: AppColors.muted)),
         const Spacer(),
         Text(
           value,

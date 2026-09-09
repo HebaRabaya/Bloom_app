@@ -52,9 +52,7 @@ void showBloomSnack(
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
         duration: const Duration(seconds: 3),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
 }
@@ -330,7 +328,7 @@ class BloomChip extends StatelessWidget {
 }
 
 /// Quantity stepper shared by the product page and the cart.
-class BloomQuantityStepper extends StatelessWidget {
+class BloomQuantityStepper extends StatefulWidget {
   final int quantity;
   final VoidCallback? onIncrease;
   final VoidCallback? onDecrease;
@@ -345,8 +343,23 @@ class BloomQuantityStepper extends StatelessWidget {
   });
 
   @override
+  State<BloomQuantityStepper> createState() => _BloomQuantityStepperState();
+}
+
+class _BloomQuantityStepperState extends State<BloomQuantityStepper> {
+  bool _goingUp = true;
+
+  @override
+  void didUpdateWidget(covariant BloomQuantityStepper oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.quantity != oldWidget.quantity) {
+      _goingUp = widget.quantity > oldWidget.quantity;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final size = compact ? 28.0 : 34.0;
+    final size = widget.compact ? 28.0 : 34.0;
 
     return Container(
       padding: const EdgeInsets.all(4),
@@ -357,19 +370,36 @@ class BloomQuantityStepper extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _button(Icons.remove_rounded, onDecrease, size),
+          _button(Icons.remove_rounded, widget.onDecrease, size),
           Container(
             constraints: BoxConstraints(minWidth: size),
             alignment: Alignment.center,
-            child: Text(
-              '$quantity',
-              style: AppText.sans(
-                size: compact ? 13 : 14.5,
-                weight: FontWeight.w600,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              transitionBuilder: (child, animation) {
+                final offset = Offset(0, _goingUp ? 0.45 : -0.45);
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: offset,
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                );
+              },
+              child: Text(
+                '${widget.quantity}',
+                key: ValueKey(widget.quantity),
+                style: AppText.sans(
+                  size: widget.compact ? 13 : 14.5,
+                  weight: FontWeight.w600,
+                ),
               ),
             ),
           ),
-          _button(Icons.add_rounded, onIncrease, size),
+          _button(Icons.add_rounded, widget.onIncrease, size),
         ],
       ),
     );
@@ -435,6 +465,9 @@ class BloomLoader extends StatelessWidget {
 }
 
 /// Friendly empty state with an illustration, copy and an optional action.
+///
+/// When [mood] is set, the scene comes alive: drifting petals, a breathing
+/// glow, and a floating illustration so the pause still feels like Bloom.
 class BloomEmptyState extends StatelessWidget {
   final String title;
   final String message;
@@ -442,6 +475,7 @@ class BloomEmptyState extends StatelessWidget {
   final VoidCallback? onAction;
   final IconData? icon;
   final String illustration;
+  final BloomPetalMood? mood;
 
   const BloomEmptyState({
     super.key,
@@ -451,32 +485,41 @@ class BloomEmptyState extends StatelessWidget {
     this.onAction,
     this.icon,
     this.illustration = AppAssets.emptyStateIllustration,
+    this.mood,
   });
 
   @override
   Widget build(BuildContext context) {
+    final living = mood != null;
+    final glowColor = mood == BloomPetalMood.favorite
+        ? AppColors.coralSoft
+        : AppColors.peach;
+
     final content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         FadeSlideIn(
-          offsetY: 14,
+          offsetY: 18,
+          duration: const Duration(milliseconds: 640),
           child: SizedBox(
-            height: 190,
+            height: living ? 230 : 190,
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Image.asset(illustration, fit: BoxFit.contain),
+                if (living) BloomGlowPulse(size: 220, color: glowColor),
+                living
+                    ? BloomFloat(
+                        distance: 9,
+                        tilt: 0.028,
+                        child: Image.asset(illustration, fit: BoxFit.contain),
+                      )
+                    : Image.asset(illustration, fit: BoxFit.contain),
                 if (icon != null)
                   Positioned(
-                    bottom: 6,
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(icon, color: AppColors.coral, size: 22),
-                    ),
+                    bottom: living ? 10 : 6,
+                    child: living
+                        ? BloomBreathe(maxScale: 1.06, child: _emptyIcon(icon!))
+                        : _emptyIcon(icon!),
                   ),
               ],
             ),
@@ -484,7 +527,7 @@ class BloomEmptyState extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         FadeSlideIn(
-          delay: const Duration(milliseconds: 90),
+          delay: const Duration(milliseconds: 120),
           child: Text(
             title,
             textAlign: TextAlign.center,
@@ -493,28 +536,35 @@ class BloomEmptyState extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         FadeSlideIn(
-          delay: const Duration(milliseconds: 150),
+          delay: const Duration(milliseconds: 190),
           child: Text(
             message,
             textAlign: TextAlign.center,
-            style: AppText.sans(
-              size: 13,
-              color: AppColors.muted,
-              height: 1.6,
-            ),
+            style: AppText.sans(size: 13, color: AppColors.muted, height: 1.6),
           ),
         ),
         if (actionLabel != null && onAction != null) ...[
           const SizedBox(height: 24),
           FadeSlideIn(
-            delay: const Duration(milliseconds: 210),
-            child: SizedBox(
-              width: 210,
-              child: ElevatedButton(
-                onPressed: onAction,
-                child: Text(actionLabel!),
-              ),
-            ),
+            delay: const Duration(milliseconds: 280),
+            child: living
+                ? BloomBreathe(
+                    maxScale: 1.03,
+                    child: SizedBox(
+                      width: 210,
+                      child: ElevatedButton(
+                        onPressed: onAction,
+                        child: Text(actionLabel!),
+                      ),
+                    ),
+                  )
+                : SizedBox(
+                    width: 210,
+                    child: ElevatedButton(
+                      onPressed: onAction,
+                      child: Text(actionLabel!),
+                    ),
+                  ),
           ),
         ],
       ],
@@ -522,19 +572,47 @@ class BloomEmptyState extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        return SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: constraints.maxHeight.isFinite
-                  ? constraints.maxHeight - 48
-                  : 0,
+        return Stack(
+          children: [
+            if (living)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: BloomPetalField(mood: mood!, count: 14),
+                ),
+              ),
+            SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight.isFinite
+                      ? constraints.maxHeight - 48
+                      : 0,
+                ),
+                child: Center(child: content),
+              ),
             ),
-            child: Center(child: content),
-          ),
+          ],
         );
       },
+    );
+  }
+
+  Widget _emptyIcon(IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.coral.withValues(alpha: 0.18),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Icon(icon, color: AppColors.coral, size: 22),
     );
   }
 }

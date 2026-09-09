@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/product_model.dart';
@@ -12,6 +13,8 @@ import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_logo.dart';
 import '../../widgets/bloom_ui.dart';
+import '../../widgets/bloom_wow.dart';
+import '../../widgets/bloom_luxe.dart';
 import '../../widgets/product_card.dart';
 import 'favorites_screen.dart';
 import 'product_details_screen.dart';
@@ -30,6 +33,13 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   final _categoryService = CategoryService();
   final _favoriteService = FavoriteService();
   final _cartService = CartService();
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   // ============================================================
   // Actions
@@ -63,10 +73,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     Navigator.push(
       context,
       BloomPageRoute(
-        builder: (_) => ProductDetailsScreen(
-          product: product,
-          heroTag: heroTag,
-        ),
+        builder: (_) =>
+            ProductDetailsScreen(product: product, heroTag: heroTag),
       ),
     );
   }
@@ -75,10 +83,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     Navigator.push(
       context,
       BloomPageRoute(
-        builder: (_) => SearchScreen(
-          initialCategory: name,
-          showBackButton: true,
-        ),
+        builder: (_) =>
+            SearchScreen(initialCategory: name, showBackButton: true),
       ),
     );
   }
@@ -100,21 +106,58 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
             return StreamBuilder<List<ProductModel>>(
               stream: _productService.getProducts(),
               builder: (context, productSnapshot) {
-                final products =
-                    productSnapshot.data ?? const <ProductModel>[];
+                final products = productSnapshot.data ?? const <ProductModel>[];
                 final loading =
                     productSnapshot.connectionState ==
                         ConnectionState.waiting &&
                     products.isEmpty;
 
                 return CustomScrollView(
+                  controller: _scroll,
                   physics: const BouncingScrollPhysics(
                     parent: AlwaysScrollableScrollPhysics(),
                   ),
                   slivers: [
+                    CupertinoSliverRefreshControl(
+                      refreshTriggerPullDistance: 120,
+                      refreshIndicatorExtent: 76,
+                      onRefresh: () async {
+                        await Future<void>.delayed(
+                          const Duration(milliseconds: 1100),
+                        );
+                      },
+                      builder:
+                          (
+                            context,
+                            refreshState,
+                            pulledExtent,
+                            triggerDistance,
+                            indicatorExtent,
+                          ) {
+                            final progress = (pulledExtent / triggerDistance)
+                                .clamp(0.0, 1.0);
+                            return BloomRefreshLotus(
+                              progress: progress,
+                              refreshing:
+                                  refreshState ==
+                                      RefreshIndicatorMode.refresh ||
+                                  refreshState == RefreshIndicatorMode.done,
+                            );
+                          },
+                    ),
                     SliverToBoxAdapter(child: _buildHeader(padding)),
                     SliverToBoxAdapter(child: _buildSearchBar(padding)),
-                    SliverToBoxAdapter(child: _buildBanner(padding)),
+                    SliverToBoxAdapter(
+                      child: AnimatedBuilder(
+                        animation: _scroll,
+                        builder: (context, _) {
+                          return _buildBanner(
+                            padding,
+                            _scroll.hasClients ? _scroll.offset : 0,
+                          );
+                        },
+                      ),
+                    ),
                     SliverToBoxAdapter(child: _buildCategories(padding)),
 
                     if (loading)
@@ -166,26 +209,24 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                                 crossAxisSpacing: 16,
                                 childAspectRatio: 0.68,
                               ),
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final product = products[index];
-                              return FadeSlideIn.staggered(
-                                index: index,
-                                child: ProductCard(
-                                  product: product,
-                                  heroTag: 'home-${product.id}',
-                                  isFavorite: favoriteIds.contains(product.id),
-                                  onTap: () => _openProduct(
-                                    product,
-                                    'home-${product.id}',
-                                  ),
-                                  onFavorite: () => _toggleFavorite(product),
-                                  onAdd: () => _addToCart(product),
-                                ),
-                              );
-                            },
-                            childCount: products.length,
-                          ),
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final product = products[index];
+                            return FadeSlideIn.staggered(
+                              index: index,
+                              child: ProductCard(
+                                product: product,
+                                heroTag: 'home-${product.id}',
+                                isFavorite: favoriteIds.contains(product.id),
+                                onTap: () =>
+                                    _openProduct(product, 'home-${product.id}'),
+                                onFavorite: () => _toggleFavorite(product),
+                                onAdd: () => _addToCart(product),
+                              ),
+                            );
+                          }, childCount: products.length),
                         ),
                       ),
                     ],
@@ -281,106 +322,79 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   // Hero banner
   // ============================================================
 
-  Widget _buildBanner(double padding) {
+  Widget _buildBanner(double padding, double parallax) {
     return FadeSlideIn(
       delay: const Duration(milliseconds: 120),
       child: Padding(
         padding: EdgeInsets.fromLTRB(padding, 18, padding, 0),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(26),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Image.asset(AppAssets.homeHeroBanner, fit: BoxFit.cover),
-              ),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [
-                        AppColors.blush.withValues(alpha: 0.97),
-                        AppColors.blush.withValues(alpha: 0.72),
-                        AppColors.blush.withValues(alpha: 0.0),
-                      ],
-                      stops: const [0, 0.42, 0.78],
+        child: BloomCinematicBanner(
+          parallax: parallax,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+            child: SizedBox(
+              width: 190,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('BIGGER.', style: AppText.serif(size: 21, height: 1.15)),
+                  Text(
+                    'BRIGHTER.',
+                    style: AppText.serif(
+                      size: 21,
+                      height: 1.15,
+                      color: AppColors.coral,
                     ),
                   ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-                child: SizedBox(
-                  width: 190,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'BIGGER.',
-                        style: AppText.serif(size: 21, height: 1.15),
-                      ),
-                      Text(
-                        'BRIGHTER.',
-                        style: AppText.serif(
-                          size: 21,
-                          height: 1.15,
-                          color: AppColors.coral,
+                  Text('BETTER.', style: AppText.serif(size: 21, height: 1.15)),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Thoughtfully designed flowers and gifts '
+                    'for every meaningful moment.',
+                    style: AppText.sans(
+                      size: 11,
+                      color: AppColors.ink.withValues(alpha: 0.72),
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  BloomBreathe(
+                    child: PressableScale(
+                      onTap: () => UserMainScreen.of(context)?.goToTab(1),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 9,
                         ),
-                      ),
-                      Text(
-                        'BETTER.',
-                        style: AppText.serif(size: 21, height: 1.15),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Thoughtfully designed flowers and gifts '
-                        'for every meaningful moment.',
-                        style: AppText.sans(
-                          size: 11,
-                          color: AppColors.ink.withValues(alpha: 0.72),
-                          height: 1.5,
+                        decoration: BoxDecoration(
+                          color: AppColors.forest,
+                          borderRadius: BorderRadius.circular(24),
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                      PressableScale(
-                        onTap: () => UserMainScreen.of(context)?.goToTab(1),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 9,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.forest,
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Shop Now',
-                                style: AppText.sans(
-                                  size: 12,
-                                  weight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              const Icon(
-                                Icons.arrow_forward_rounded,
-                                size: 13,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Shop Now',
+                              style: AppText.sans(
+                                size: 12,
+                                weight: FontWeight.w600,
                                 color: Colors.white,
                               ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 13,
+                              color: Colors.white,
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:bloom_app/theme/app_theme.dart';
+import 'package:bloom_app/widgets/bloom_animations.dart';
 import 'package:bloom_app/widgets/bloom_logo.dart';
 import 'package:bloom_app/widgets/bloom_ui.dart';
 import 'package:flutter/material.dart';
@@ -62,5 +63,32 @@ void main() {
     // The decrease callback was omitted, so tapping it must do nothing.
     await tester.tap(find.byIcon(Icons.remove_rounded));
     await tester.pump();
+  });
+
+  testWidgets('Add to cart button pops into a check on tap', (tester) async {
+    var tapped = false;
+
+    await tester.pumpWidget(
+      _wrap(BloomCartAddButton(enabled: true, onTap: () => tapped = true)),
+    );
+
+    await tester.tap(find.byIcon(Icons.add_rounded));
+    await tester.pump();
+
+    expect(tapped, isTrue);
+    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 900));
+  });
+
+  testWidgets('Heart button reports taps', (tester) async {
+    var tapped = false;
+
+    await tester.pumpWidget(
+      _wrap(BloomHeartButton(isFavorite: false, onTap: () => tapped = true)),
+    );
+
+    await tester.tap(find.byIcon(Icons.favorite_border_rounded));
+    await tester.pump();
+    expect(tapped, isTrue);
   });
 }

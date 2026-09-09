@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import 'bloom_animations.dart';
+import 'bloom_wow.dart';
 
 class BloomNavItem {
   final IconData icon;
@@ -46,9 +48,7 @@ class BloomNavBar extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(26),
-            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
             boxShadow: [
               BoxShadow(
                 color: AppColors.taupe.withValues(alpha: 0.22),
@@ -60,10 +60,7 @@ class BloomNavBar extends StatelessWidget {
           child: SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 10,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
               child: Row(
                 children: [
                   for (var i = 0; i < items.length; i++)
@@ -72,6 +69,10 @@ class BloomNavBar extends StatelessWidget {
                         item: items[i],
                         selected: i == currentIndex,
                         badge: badges[i] ?? 0,
+                        iconKey: i == 2 ? BloomCartFlight.cartIconKey : null,
+                        bounceListenable: i == 2
+                            ? BloomCartFlight.arrivalTick
+                            : null,
                         onTap: () => onChanged(i),
                       ),
                     ),
@@ -90,12 +91,16 @@ class _NavButton extends StatelessWidget {
   final bool selected;
   final int badge;
   final VoidCallback onTap;
+  final GlobalKey? iconKey;
+  final ValueNotifier<int>? bounceListenable;
 
   const _NavButton({
     required this.item,
     required this.selected,
     required this.badge,
     required this.onTap,
+    this.iconKey,
+    this.bounceListenable,
   });
 
   @override
@@ -126,36 +131,44 @@ class _NavButton extends StatelessWidget {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Icon(
-                    selected ? item.activeIcon : item.icon,
-                    size: 21,
-                    color: color,
+                  KeyedSubtree(
+                    key: iconKey,
+                    child: bounceListenable == null
+                        ? Icon(
+                            selected ? item.activeIcon : item.icon,
+                            size: 21,
+                            color: color,
+                          )
+                        : ValueListenableBuilder<int>(
+                            valueListenable: bounceListenable!,
+                            builder: (context, tick, child) {
+                              if (tick == 0) return child!;
+                              return TweenAnimationBuilder<double>(
+                                key: ValueKey(tick),
+                                tween: Tween(begin: 0.7, end: 1),
+                                duration: const Duration(milliseconds: 560),
+                                curve: Curves.elasticOut,
+                                builder: (context, scale, child) {
+                                  return Transform.scale(
+                                    scale: scale,
+                                    child: child,
+                                  );
+                                },
+                                child: child,
+                              );
+                            },
+                            child: Icon(
+                              selected ? item.activeIcon : item.icon,
+                              size: 21,
+                              color: color,
+                            ),
+                          ),
                   ),
                   if (badge > 0)
                     Positioned(
                       right: -8,
                       top: -6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 5,
-                          vertical: 1,
-                        ),
-                        constraints: const BoxConstraints(minWidth: 16),
-                        decoration: BoxDecoration(
-                          color: AppColors.coral,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white, width: 1.5),
-                        ),
-                        child: Text(
-                          badge > 9 ? '9+' : '$badge',
-                          textAlign: TextAlign.center,
-                          style: AppText.sans(
-                            size: 9,
-                            weight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
+                      child: BloomCountBadge(count: badge),
                     ),
                 ],
               ),
