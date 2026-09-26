@@ -1,7 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/router.dart';
 import '../../models/cart_model.dart';
+import '../../providers/cart_providers.dart';
+import '../../providers/order_providers.dart';
+import '../../providers/profile_providers.dart';
 import '../../services/cart_service.dart';
 import '../../services/order_service.dart';
 import '../../services/profile_service.dart';
@@ -9,20 +15,19 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_ui.dart';
-import 'order_success_screen.dart';
 
-class CheckoutScreen extends StatefulWidget {
+class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
 
   @override
-  State<CheckoutScreen> createState() => _CheckoutScreenState();
+  ConsumerState<CheckoutScreen> createState() => _CheckoutScreenState();
 }
 
-class _CheckoutScreenState extends State<CheckoutScreen> {
+class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   final _addressController = TextEditingController();
-  final _orderService = OrderService();
-  final _profileService = ProfileService();
-  final _cartService = CartService();
+  OrderService get _orderService => ref.read(orderServiceProvider);
+  ProfileService get _profileService => ref.read(profileServiceProvider);
+  CartService get _cartService => ref.read(cartServiceProvider);
 
   bool _isLoadingAddress = true;
   bool _isPlacingOrder = false;
@@ -52,8 +57,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
 
     try {
-      final document = await _profileService.getProfile(user.uid);
-      _addressController.text = document.data()?['address']?.toString() ?? '';
+      final profile = await _profileService.getProfile(user.uid);
+      _addressController.text = profile?.address ?? '';
     } catch (_) {
       if (!mounted) return;
       showBloomSnack(context, 'Unable to load your saved address.');
@@ -94,9 +99,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        BloomPageRoute(builder: (_) => OrderSuccessScreen(orderId: orderId)),
+      context.pushReplacement(
+        Uri(
+          path: AppRoutes.orderSuccess,
+          queryParameters: {'orderId': orderId},
+        ).toString(),
       );
     } catch (e) {
       if (!mounted) return;
@@ -133,7 +140,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           padding: const EdgeInsets.only(left: 16),
           child: BloomCircleButton(
             icon: Icons.arrow_back_ios_new_rounded,
-            onTap: () => Navigator.pop(context),
+            onTap: () => context.pop(),
           ),
         ),
         leadingWidth: 62,

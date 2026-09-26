@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_wow.dart';
+import 'user_main_screen.dart';
 
 /// Confirmation screen shown right after a successful checkout.
 ///
@@ -51,6 +53,11 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
     final from = now.add(const Duration(hours: 2));
     final to = now.add(const Duration(hours: 5));
     return 'Today, ${_time(from)} – ${_time(to)}';
+  }
+
+  void _close(String destination) {
+    UserMainScreen.of(context)?.goToTab(destination == 'orders' ? 3 : 0);
+    context.pop(destination);
   }
 
   static String _time(DateTime value) {
@@ -200,7 +207,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
                       child: SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () => Navigator.pop(context, 'orders'),
+                          onPressed: () => _close('orders'),
                           child: const Text('View Order'),
                         ),
                       ),
@@ -212,7 +219,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
                       child: SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context, 'home'),
+                          onPressed: () => _close('home'),
                           style: OutlinedButton.styleFrom(
                             backgroundColor: AppColors.blush,
                             side: BorderSide.none,

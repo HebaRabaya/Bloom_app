@@ -5,11 +5,15 @@ import '../models/cart_model.dart';
 import '../models/order_model.dart';
 
 class OrderService {
-  final FirebaseFirestore _firestore =
-      FirebaseFirestore.instance;
+  OrderService({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
 
-  final FirebaseAuth _auth =
-      FirebaseAuth.instance;
+  final FirebaseFirestore _firestore;
+
+  final FirebaseAuth _auth;
 
   // ============================================================
   // Orders Collection

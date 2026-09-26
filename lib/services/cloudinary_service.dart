@@ -3,14 +3,18 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../config/app_config.dart';
+
 class CloudinaryService {
   // ============================================================
   // Cloudinary Settings
   // ============================================================
 
-  static const String _cloudName = 'ownsdmuj';
+  static const String _cloudName =
+      AppConfig.cloudinaryCloudName;
 
-  static const String _uploadPreset = 'bloom_profiles';
+  static const String _uploadPreset =
+      AppConfig.cloudinaryUploadPreset;
 
   // ============================================================
   // Upload Image

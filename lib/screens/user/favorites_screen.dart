@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/router.dart';
 import '../../models/product_model.dart';
+import '../../providers/cart_providers.dart';
+import '../../providers/favorite_providers.dart';
 import '../../services/cart_service.dart';
 import '../../services/favorite_service.dart';
 import '../../theme/app_colors.dart';
@@ -8,18 +13,17 @@ import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_ui.dart';
 import '../../widgets/bloom_wow.dart';
-import 'product_details_screen.dart';
 
-class FavoritesScreen extends StatefulWidget {
+class FavoritesScreen extends ConsumerStatefulWidget {
   const FavoritesScreen({super.key});
 
   @override
-  State<FavoritesScreen> createState() => _FavoritesScreenState();
+  ConsumerState<FavoritesScreen> createState() => _FavoritesScreenState();
 }
 
-class _FavoritesScreenState extends State<FavoritesScreen> {
-  final _favoriteService = FavoriteService();
-  final _cartService = CartService();
+class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
+  FavoriteService get _favoriteService => ref.read(favoriteServiceProvider);
+  CartService get _cartService => ref.read(cartServiceProvider);
 
   Future<void> _remove(ProductModel product) async {
     try {
@@ -65,7 +69,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           padding: const EdgeInsets.only(left: 16),
           child: BloomCircleButton(
             icon: Icons.arrow_back_ios_new_rounded,
-            onTap: () => Navigator.pop(context),
+            onTap: () => context.pop(),
           ),
         ),
         leadingWidth: 62,
@@ -89,7 +93,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   'you here.',
               icon: Icons.favorite_border_rounded,
               actionLabel: 'Find something you love',
-              onAction: () => Navigator.pop(context),
+              onAction: () => context.pop(),
               mood: BloomPetalMood.favorite,
             );
           }
@@ -111,14 +115,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 child: BloomCard(
                   padding: const EdgeInsets.all(12),
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      BloomPageRoute(
-                        builder: (_) => ProductDetailsScreen(
-                          product: product,
-                          heroTag: tag,
-                        ),
-                      ),
+                    context.push(
+                      AppRoutes.product,
+                      extra: ProductRouteExtra(product: product, heroTag: tag),
                     );
                   },
                   child: Row(

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../core/utils/parsers.dart';
 import '../models/product_model.dart';
 
 class FavoriteService {
@@ -197,7 +198,7 @@ class FavoriteService {
                   ?.toString() ??
                   '',
               price:
-              _toDouble(
+              parseDouble(
                 data[
                 'productPrice'],
               ),
@@ -210,7 +211,7 @@ class FavoriteService {
                   ?.toString() ??
                   '',
               quantity:
-              _toInt(
+              parseInt(
                 data[
                 'productQuantity'],
               ),
@@ -258,39 +259,5 @@ class FavoriteService {
     } else {
       await addToFavorites(product);
     }
-  }
-
-  // ============================================================
-  // Convert To Double
-  // ============================================================
-
-  double _toDouble(
-      dynamic value,
-      ) {
-    if (value is num) {
-      return value.toDouble();
-    }
-
-    return double.tryParse(
-      value?.toString() ?? '',
-    ) ??
-        0.0;
-  }
-
-  // ============================================================
-  // Convert To Int
-  // ============================================================
-
-  int _toInt(
-      dynamic value,
-      ) {
-    if (value is num) {
-      return value.toInt();
-    }
-
-    return int.tryParse(
-      value?.toString() ?? '',
-    ) ??
-        0;
   }
 }

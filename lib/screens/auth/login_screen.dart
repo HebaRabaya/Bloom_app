@@ -1,28 +1,28 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/router.dart';
+import '../../providers/auth_providers.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_auth_widgets.dart';
 import '../../widgets/bloom_logo.dart';
 import '../../widgets/bloom_ui.dart';
-import '../admin/admin_main_screen.dart';
-import '../user/user_main_screen.dart';
-import 'signup_screen.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
+  AuthService get _authService => ref.read(authServiceProvider);
 
   bool _isLoading = false;
 
@@ -63,13 +63,8 @@ class _LoginScreenState extends State<LoginScreen> {
       final role = await _authService.getUserRole(user.uid);
       if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        BloomPageRoute(
-          builder: (_) => role == 'admin'
-              ? const AdminMainScreen()
-              : const UserMainScreen(),
-        ),
+      context.go(
+        role == 'admin' ? AppRoutes.admin : AppRoutes.user,
       );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
@@ -251,12 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
           footer: AuthFooterLink(
             prompt: "Don't have an account? ",
             action: 'Sign Up',
-            onTap: () {
-              Navigator.push(
-                context,
-                BloomPageRoute(builder: (_) => const SignupScreen()),
-              );
-            },
+            onTap: () => context.push(AppRoutes.signup),
           ),
         ),
       ),

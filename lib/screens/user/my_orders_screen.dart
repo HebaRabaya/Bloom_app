@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/router.dart';
 import '../../models/order_model.dart';
-import '../../services/order_service.dart';
+import '../../providers/order_providers.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_ui.dart';
 import '../../widgets/order_status.dart';
-import 'order_tracking_screen.dart';
 import 'user_main_screen.dart';
 
-class MyOrdersScreen extends StatelessWidget {
+class MyOrdersScreen extends ConsumerWidget {
   const MyOrdersScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final orderService = OrderService();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final orderService = ref.watch(orderServiceProvider);
     final padding = bloomPagePadding(MediaQuery.sizeOf(context).width);
 
     return Scaffold(
@@ -93,10 +95,7 @@ class _OrderCard extends StatelessWidget {
     return BloomCard(
       padding: const EdgeInsets.all(16),
       onTap: () {
-        Navigator.push(
-          context,
-          BloomPageRoute(builder: (_) => OrderTrackingScreen(order: order)),
-        );
+        context.push(AppRoutes.orderTracking, extra: order);
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

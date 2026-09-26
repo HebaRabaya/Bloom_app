@@ -2,29 +2,32 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../providers/profile_providers.dart';
 import '../../services/profile_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_ui.dart';
 
-class EditProfileScreen extends StatefulWidget {
+class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
   @override
-  State<EditProfileScreen> createState() => _EditProfileScreenState();
+  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen> {
+class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _nameController = TextEditingController();
   final _ageController = TextEditingController();
   final _phoneController = TextEditingController();
   final _bioController = TextEditingController();
   final _addressController = TextEditingController();
 
-  final _profileService = ProfileService();
+  ProfileService get _profileService => ref.read(profileServiceProvider);
   final _imagePicker = ImagePicker();
 
   bool _isLoading = true;
@@ -61,16 +64,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     try {
-      final document = await _profileService.getProfile(user.uid);
+      final profile = await _profileService.getProfile(user.uid);
 
-      if (document.exists) {
-        final data = document.data();
-        _nameController.text = data?['name']?.toString() ?? '';
-        _ageController.text = data?['age']?.toString() ?? '';
-        _phoneController.text = data?['phone']?.toString() ?? '';
-        _bioController.text = data?['bio']?.toString() ?? '';
-        _addressController.text = data?['address']?.toString() ?? '';
-        _imageUrl = data?['imageUrl']?.toString();
+      if (profile != null) {
+        _nameController.text = profile.name;
+        _ageController.text = profile.age;
+        _phoneController.text = profile.phone;
+        _bioController.text = profile.bio;
+        _addressController.text = profile.address;
+        _imageUrl = profile.imageUrl;
       } else {
         _nameController.text = user.displayName ?? '';
       }
@@ -152,7 +154,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       });
 
       showBloomSnack(context, 'Profile updated');
-      Navigator.pop(context);
+      context.pop();
     } catch (_) {
       if (!mounted) return;
       showBloomSnack(
@@ -177,7 +179,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           padding: const EdgeInsets.only(left: 16),
           child: BloomCircleButton(
             icon: Icons.arrow_back_ios_new_rounded,
-            onTap: () => Navigator.pop(context),
+            onTap: () => context.pop(),
           ),
         ),
         leadingWidth: 62,

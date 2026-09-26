@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../models/product_model.dart';
+import '../../providers/cart_providers.dart';
+import '../../providers/favorite_providers.dart';
 import '../../services/cart_service.dart';
 import '../../services/favorite_service.dart';
 import '../../theme/app_colors.dart';
@@ -9,7 +13,7 @@ import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_ui.dart';
 import '../../widgets/bloom_wow.dart';
 
-class ProductDetailsScreen extends StatefulWidget {
+class ProductDetailsScreen extends ConsumerStatefulWidget {
   final ProductModel product;
   final String heroTag;
 
@@ -20,12 +24,13 @@ class ProductDetailsScreen extends StatefulWidget {
   });
 
   @override
-  State<ProductDetailsScreen> createState() => _ProductDetailsScreenState();
+  ConsumerState<ProductDetailsScreen> createState() =>
+      _ProductDetailsScreenState();
 }
 
-class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
-  final _cartService = CartService();
-  final _favoriteService = FavoriteService();
+class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
+  CartService get _cartService => ref.read(cartServiceProvider);
+  FavoriteService get _favoriteService => ref.read(favoriteServiceProvider);
 
   int _quantity = 1;
   bool _isAdding = false;
@@ -260,7 +265,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               children: [
                 BloomCircleButton(
                   icon: Icons.arrow_back_ios_new_rounded,
-                  onTap: () => Navigator.pop(context),
+                  onTap: () => context.pop(),
                 ),
                 const Spacer(),
                 StreamBuilder<Set<String>>(

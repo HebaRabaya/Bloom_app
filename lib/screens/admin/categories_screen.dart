@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../providers/category_providers.dart';
 import '../../services/category_service.dart';
 import '../../theme/app_assets.dart';
 import '../../theme/app_colors.dart';
@@ -7,15 +9,15 @@ import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_ui.dart';
 
-class CategoriesScreen extends StatefulWidget {
+class CategoriesScreen extends ConsumerStatefulWidget {
   const CategoriesScreen({super.key});
 
   @override
-  State<CategoriesScreen> createState() => _CategoriesScreenState();
+  ConsumerState<CategoriesScreen> createState() => _CategoriesScreenState();
 }
 
-class _CategoriesScreenState extends State<CategoriesScreen> {
-  final _categoryService = CategoryService();
+class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
+  CategoryService get _categoryService => ref.read(categoryServiceProvider);
   final _categoryController = TextEditingController();
 
   bool _isAdding = false;
@@ -169,7 +171,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
                   if (!snapshot.hasData) return const BloomLoader();
 
-                  final categories = snapshot.data!.docs;
+                  final categories = snapshot.data!;
 
                   if (categories.isEmpty) {
                     return const BloomEmptyState(
@@ -189,12 +191,11 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     itemCount: categories.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
-                      final document = categories[index];
-                      final name =
-                          document.data()['name']?.toString() ?? '';
+                      final category = categories[index];
+                      final name = category.name;
 
                       return FadeSlideIn.staggered(
-                        key: ValueKey(document.id),
+                        key: ValueKey(category.id),
                         index: index,
                         child: BloomCard(
                           padding: const EdgeInsets.symmetric(
@@ -224,7 +225,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                               ),
                               IconButton(
                                 onPressed: () =>
-                                    _deleteCategory(document.id, name),
+                                    _deleteCategory(category.id, name),
                                 icon: const Icon(
                                   Icons.delete_outline_rounded,
                                   size: 19,

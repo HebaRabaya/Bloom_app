@@ -1,8 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/category_model.dart';
+
 class CategoryService {
-  final FirebaseFirestore _firestore =
-      FirebaseFirestore.instance;
+  CategoryService({
+    FirebaseFirestore? firestore,
+  }) : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  final FirebaseFirestore _firestore;
 
   // ============================================================
   // Categories Collection
@@ -30,11 +35,20 @@ class CategoryService {
   // Get Categories
   // ============================================================
 
-  Stream<QuerySnapshot<Map<String, dynamic>>>
-  getCategories() {
+  Stream<List<CategoryModel>> getCategories() {
     return _categories
         .orderBy('createdAt')
-        .snapshots();
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (document) => CategoryModel.fromMap(
+                  document.id,
+                  document.data(),
+                ),
+              )
+              .toList(),
+        );
   }
 
   // ============================================================

@@ -1,46 +1,46 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../services/auth_service.dart';
-import '../../services/profile_service.dart';
+import '../../app/router.dart';
+import '../../models/user_model.dart';
+import '../../providers/auth_providers.dart';
+import '../../providers/profile_providers.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_logo.dart';
 import '../../widgets/bloom_ui.dart';
-import '../auth/login_screen.dart';
-import '../user/favorites_screen.dart';
 import '../user/user_main_screen.dart';
-import 'edit_profile_screen.dart';
 
 /// Account hub. Shared by customers and admins; customer-only shortcuts are
 /// hidden when [isAdmin] is true.
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   final bool isAdmin;
 
   const ProfileScreen({super.key, this.isAdmin = false});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = FirebaseAuth.instance.currentUser;
     final padding = bloomPagePadding(MediaQuery.sizeOf(context).width);
-    final profileService = ProfileService();
+    final profileService = ref.watch(profileServiceProvider);
 
     return Scaffold(
       backgroundColor: AppColors.cream,
       body: SafeArea(
         bottom: false,
-        child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        child: StreamBuilder<UserModel?>(
           stream: user == null ? null : profileService.watchProfile(user.uid),
           builder: (context, snapshot) {
-            final data = snapshot.data?.data();
+            final profile = snapshot.data;
 
-            final name = (data?['name']?.toString().trim().isNotEmpty ?? false)
-                ? data!['name'].toString()
+            final name = (profile?.name.trim().isNotEmpty ?? false)
+                ? profile!.name
                 : user?.displayName ?? 'Bloom User';
 
-            final imageUrl = data?['imageUrl']?.toString() ?? '';
+            final imageUrl = profile?.imageUrl ?? '';
 
             return ListView(
               padding: EdgeInsets.fromLTRB(padding, 10, padding, 24),
@@ -64,7 +64,7 @@ class ProfileScreen extends StatelessWidget {
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 380),
                   child: OutlinedButton.icon(
-                    onPressed: () => _logout(context),
+                    onPressed: () => _logout(context, ref),
                     icon: const Icon(Icons.logout_rounded, size: 18),
                     label: const Text('Log out'),
                     style: OutlinedButton.styleFrom(
@@ -206,12 +206,7 @@ class ProfileScreen extends StatelessWidget {
         _MenuEntry(
           icon: Icons.favorite_border_rounded,
           label: 'Favorites',
-          onTap: () {
-            Navigator.push(
-              context,
-              BloomPageRoute(builder: (_) => const FavoritesScreen()),
-            );
-          },
+          onTap: () => context.push(AppRoutes.favorites),
         ),
         _MenuEntry(
           icon: Icons.location_on_outlined,
@@ -252,10 +247,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   void _openEditProfile(BuildContext context) {
-    Navigator.push(
-      context,
-      BloomPageRoute(builder: (_) => const EditProfileScreen()),
-    );
+    context.push(AppRoutes.editProfile);
   }
 
   void _showSupport(BuildContext context) {
@@ -351,7 +343,7 @@ class ProfileScreen extends StatelessWidget {
   // Logout
   // ============================================================
 
-  Future<void> _logout(BuildContext context) async {
+  Future<void> _logout(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -380,15 +372,11 @@ class ProfileScreen extends StatelessWidget {
     if (confirmed != true) return;
     if (!context.mounted) return;
 
-    await AuthService().logout();
+    await ref.read(authServiceProvider).logout();
 
     if (!context.mounted) return;
 
-    Navigator.pushAndRemoveUntil(
-      context,
-      BloomPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
+    context.go(AppRoutes.login);
   }
 }
 

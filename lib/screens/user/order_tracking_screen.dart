@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../models/order_model.dart';
+import '../../providers/order_providers.dart';
 import '../../services/order_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
@@ -9,17 +12,18 @@ import '../../widgets/bloom_ui.dart';
 import '../../widgets/order_status.dart';
 
 /// Live order detail with a progress timeline driven by the Firestore status.
-class OrderTrackingScreen extends StatefulWidget {
+class OrderTrackingScreen extends ConsumerStatefulWidget {
   final OrderModel order;
 
   const OrderTrackingScreen({super.key, required this.order});
 
   @override
-  State<OrderTrackingScreen> createState() => _OrderTrackingScreenState();
+  ConsumerState<OrderTrackingScreen> createState() =>
+      _OrderTrackingScreenState();
 }
 
-class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
-  final _orderService = OrderService();
+class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
+  OrderService get _orderService => ref.read(orderServiceProvider);
 
   bool _isCancelling = false;
 
@@ -58,7 +62,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       await _orderService.cancelOrder(order: order);
       if (!mounted) return;
       showBloomSnack(context, 'Your order has been cancelled');
-      Navigator.pop(context);
+      context.pop();
     } catch (_) {
       if (!mounted) return;
       showBloomSnack(context, 'Unable to cancel this order.', isError: true);
@@ -78,7 +82,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           padding: const EdgeInsets.only(left: 16),
           child: BloomCircleButton(
             icon: Icons.arrow_back_ios_new_rounded,
-            onTap: () => Navigator.pop(context),
+            onTap: () => context.pop(),
           ),
         ),
         leadingWidth: 62,

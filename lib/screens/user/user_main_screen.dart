@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/cart_model.dart';
+import '../../providers/cart_providers.dart';
 import '../../services/cart_service.dart';
 import '../../widgets/bloom_nav_bar.dart';
 import '../profile/profile_screen.dart';
@@ -11,13 +13,13 @@ import 'user_home_screen.dart';
 
 /// Shell for the customer experience. Tabs keep their state via [IndexedStack],
 /// and the cart tab shows a live badge from Firestore.
-class UserMainScreen extends StatefulWidget {
+class UserMainScreen extends ConsumerStatefulWidget {
   final int initialIndex;
 
   const UserMainScreen({super.key, this.initialIndex = 0});
 
   @override
-  State<UserMainScreen> createState() => UserMainScreenState();
+  ConsumerState<UserMainScreen> createState() => UserMainScreenState();
 
   /// Lets child screens jump between tabs (for example "Shop now" from an
   /// empty cart).
@@ -26,8 +28,8 @@ class UserMainScreen extends StatefulWidget {
   }
 }
 
-class UserMainScreenState extends State<UserMainScreen> {
-  final CartService _cartService = CartService();
+class UserMainScreenState extends ConsumerState<UserMainScreen> {
+  CartService get _cartService => ref.read(cartServiceProvider);
 
   late int _currentIndex = widget.initialIndex;
 

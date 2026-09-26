@@ -1,30 +1,30 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../app/router.dart';
+import '../../providers/auth_providers.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_assets.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bloom_logo.dart';
-import '../admin/admin_main_screen.dart';
-import '../auth/login_screen.dart';
-import '../onboarding/onboarding_screen.dart';
-import '../user/user_main_screen.dart';
 
 /// Splash from the mockup: peach-rose photograph, rose-gold lotus,
 /// white serif wordmark and tagline in the upper third.
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
-  final AuthService _authService = AuthService();
+  AuthService get _authService => ref.read(authServiceProvider);
 
   late final AnimationController _controller = AnimationController(
     vsync: this,
@@ -76,24 +76,16 @@ class _SplashScreenState extends State<SplashScreen>
       Future<void>.delayed(const Duration(milliseconds: 4800)),
     ]);
 
-    final destination = results.first as Widget;
+    final destination = results.first as String;
 
     if (!mounted) return;
 
     SystemChrome.setSystemUIOverlayStyle(_darkIcons);
 
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 650),
-        pageBuilder: (_, _, _) => destination,
-        transitionsBuilder: (_, animation, _, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-      ),
-    );
+    context.go(destination);
   }
 
-  Future<Widget> _resolveDestination() async {
+  Future<String> _resolveDestination() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
 
@@ -102,18 +94,16 @@ class _SplashScreenState extends State<SplashScreen>
             .getUserRole(user.uid)
             .timeout(const Duration(seconds: 6), onTimeout: () => 'user');
 
-        return role == 'admin'
-            ? const AdminMainScreen()
-            : const UserMainScreen();
+        return role == 'admin' ? AppRoutes.admin : AppRoutes.user;
       }
 
       final preferences = await SharedPreferences.getInstance();
       final hasSeenOnboarding =
           preferences.getBool('hasSeenOnboarding') ?? false;
 
-      return hasSeenOnboarding ? const LoginScreen() : const OnboardingScreen();
+      return hasSeenOnboarding ? AppRoutes.login : AppRoutes.onboarding;
     } catch (_) {
-      return const LoginScreen();
+      return AppRoutes.login;
     }
   }
 

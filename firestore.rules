@@ -1,0 +1,104 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ------------------------------------------------------------
+    // Bloom Firestore rules
+    // Matched to the current app flows: signup, profile, cart,
+    // checkout (stock decrement), cancel (stock restore), admin
+    // catalog, and admin order status updates.
+    //
+    // Promote an admin in Firebase Console only:
+    //   users/{uid} → set field "role" to "admin"
+    // Console writes bypass these rules. Clients cannot.
+    // ------------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid))
+          .data.role == 'admin';
+    }
+
+    // Checkout and cancel only change stock + timestamp, not catalog fields.
+    function isStockOnlyUpdate() {
+      return isSignedIn()
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly(['quantity', 'updatedAt'])
+        && request.resource.data.quantity is number
+        && request.resource.data.quantity >= 0;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Signup writes role 'user'. A merge-write on a missing profile doc
+      // carries no role at all, which is still safe.
+      allow create: if isOwner(userId)
+        && (!('role' in request.resource.data)
+          || request.resource.data.role == 'user');
+
+      // Profile / address saves use merge and must not change role.
+      allow update: if isOwner(userId)
+        && (!('role' in request.resource.data)
+          || ('role' in resource.data
+            && request.resource.data.role == resource.data.role));
+
+      allow delete: if false;
+
+      match /cart/{itemId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    match /products/{productId} {
+      allow read: if isSignedIn();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || isStockOnlyUpdate();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      // `resource == null` keeps a get() on a missing order returning
+      // "not found" instead of a permission error.
+      allow read: if isSignedIn()
+        && (resource == null
+          || resource.data.userId == request.auth.uid
+          || isAdmin());
+
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update: if isAdmin();
+
+      allow delete: if isSignedIn()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /favorites/{favoriteId} {
+      // isFavorite() and toggleFavorite() get() a document that may not
+      // exist yet, so a missing document must read as "not found".
+      allow read: if isSignedIn()
+        && (resource == null
+          || resource.data.userId == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update, delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+    }
+  }
+}

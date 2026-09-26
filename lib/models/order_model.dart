@@ -1,6 +1,8 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../core/utils/parsers.dart';
+
 // ============================================================
 // Order Item Model
 // ============================================================
@@ -44,10 +46,10 @@ productImage:
 map['productImage']?.toString() ?? '',
 
 productPrice:
-_toDouble(map['productPrice']),
+parseDouble(map['productPrice']),
 
 quantity:
-_toInt(map['quantity']),
+parseInt(map['quantity']),
 );
 }
 
@@ -63,36 +65,6 @@ return {
 'productPrice': productPrice,
 'quantity': quantity,
 };
-}
-
-// ============================================================
-// Convert To Double
-// ============================================================
-
-static double _toDouble(dynamic value) {
-if (value is num) {
-return value.toDouble();
-}
-
-return double.tryParse(
-value?.toString() ?? '',
-) ??
-0.0;
-}
-
-// ============================================================
-// Convert To Int
-// ============================================================
-
-static int _toInt(dynamic value) {
-if (value is num) {
-return value.toInt();
-}
-
-return int.tryParse(
-value?.toString() ?? '',
-) ??
-0;
 }
 }
 
@@ -208,12 +180,12 @@ productImage:
 map['productImage']?.toString() ?? '',
 
 productPrice:
-_toDouble(map['productPrice']),
+parseDouble(map['productPrice']),
 
 quantity:
-_toInt(map['quantity']) == 0
+parseInt(map['quantity']) == 0
 ? 1
-    : _toInt(map['quantity']),
+    : parseInt(map['quantity']),
 ),
 );
 }
@@ -236,7 +208,7 @@ createdDate = timestamp;
 // Total Amount
 // ==========================================================
 
-double total = _toDouble(
+double total = parseDouble(
 map['totalAmount'],
 );
 
@@ -330,36 +302,6 @@ total += item.quantity;
 }
 
 return total;
-}
-
-// ============================================================
-// Convert To Double
-// ============================================================
-
-static double _toDouble(dynamic value) {
-if (value is num) {
-return value.toDouble();
-}
-
-return double.tryParse(
-value?.toString() ?? '',
-) ??
-0.0;
-}
-
-// ============================================================
-// Convert To Int
-// ============================================================
-
-static int _toInt(dynamic value) {
-if (value is num) {
-return value.toInt();
-}
-
-return int.tryParse(
-value?.toString() ?? '',
-) ??
-0;
 }
 }
 

@@ -1,7 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/router.dart';
+import '../../models/category_model.dart';
 import '../../models/product_model.dart';
+import '../../providers/cart_providers.dart';
+import '../../providers/category_providers.dart';
+import '../../providers/favorite_providers.dart';
+import '../../providers/product_providers.dart';
 import '../../services/cart_service.dart';
 import '../../services/category_service.dart';
 import '../../services/favorite_service.dart';
@@ -11,11 +18,10 @@ import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_ui.dart';
 import '../../widgets/product_card.dart';
-import 'product_details_screen.dart';
 
 /// Browse and filter the catalogue. Doubles as the category listing when
 /// opened from the home screen with [initialCategory].
-class SearchScreen extends StatefulWidget {
+class SearchScreen extends ConsumerStatefulWidget {
   final String? initialCategory;
   final bool showBackButton;
 
@@ -26,14 +32,14 @@ class SearchScreen extends StatefulWidget {
   });
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
-  final _productService = ProductService();
-  final _categoryService = CategoryService();
-  final _favoriteService = FavoriteService();
-  final _cartService = CartService();
+class _SearchScreenState extends ConsumerState<SearchScreen> {
+  ProductService get _productService => ref.read(productServiceProvider);
+  CategoryService get _categoryService => ref.read(categoryServiceProvider);
+  FavoriteService get _favoriteService => ref.read(favoriteServiceProvider);
+  CartService get _cartService => ref.read(cartServiceProvider);
   final _searchController = TextEditingController();
 
   String _query = '';
@@ -166,13 +172,11 @@ class _SearchScreenState extends State<SearchScreen> {
                               heroTag: tag,
                               isFavorite: favoriteIds.contains(product.id),
                               onTap: () {
-                                Navigator.push(
-                                  context,
-                                  BloomPageRoute(
-                                    builder: (_) => ProductDetailsScreen(
-                                      product: product,
-                                      heroTag: tag,
-                                    ),
+                                context.push(
+                                  AppRoutes.product,
+                                  extra: ProductRouteExtra(
+                                    product: product,
+                                    heroTag: tag,
                                   ),
                                 );
                               },
@@ -201,7 +205,7 @@ class _SearchScreenState extends State<SearchScreen> {
           if (widget.showBackButton) ...[
             BloomCircleButton(
               icon: Icons.arrow_back_ios_new_rounded,
-              onTap: () => Navigator.pop(context),
+              onTap: () => context.pop(),
             ),
             const SizedBox(width: 12),
           ],
@@ -263,13 +267,13 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildCategoryFilters(double padding) {
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+    return StreamBuilder<List<CategoryModel>>(
       stream: _categoryService.getCategories(),
       builder: (context, snapshot) {
         final names = <String>['All'];
 
-        for (final document in snapshot.data?.docs ?? []) {
-          final name = document.data()['name']?.toString() ?? '';
+        for (final category in snapshot.data ?? []) {
+          final name = category.name;
           if (name.isNotEmpty) names.add(name);
         }
 

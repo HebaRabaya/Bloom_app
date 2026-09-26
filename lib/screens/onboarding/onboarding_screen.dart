@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../app/router.dart';
 import '../../theme/app_assets.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_logo.dart';
-import '../auth/login_screen.dart';
 
 class _OnboardPage {
   final String image;
@@ -77,10 +78,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     if (!mounted) return;
 
-    Navigator.pushReplacement(
-      context,
-      BloomPageRoute(builder: (_) => const LoginScreen()),
-    );
+    context.go(AppRoutes.login);
   }
 
   void _next() {

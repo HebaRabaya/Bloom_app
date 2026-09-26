@@ -16,7 +16,6 @@ class AuthService {
     required String email,
     required String password,
     required String name,
-    required String role,
   }) async {
     // ----------------------------------------------------------
     // 1. إنشاء الحساب داخل Firebase Authentication
@@ -39,6 +38,8 @@ class AuthService {
 
       // --------------------------------------------------------
       // 3. إنشاء Document داخل Firestore
+      // أي حساب جديد ينحفظ كزبون. ترقية الأدمن تتم فقط
+      // من Firebase Console على حقل role، مش من التطبيق.
       // --------------------------------------------------------
 
       await _firestore
@@ -47,7 +48,7 @@ class AuthService {
           .set({
         'name': name,
         'email': email,
-        'role': role,
+        'role': 'user',
 
         // حقول البروفايل
         'age': '',

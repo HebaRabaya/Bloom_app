@@ -1,6 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../providers/auth_providers.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
@@ -8,21 +11,20 @@ import '../../widgets/bloom_auth_widgets.dart';
 import '../../widgets/bloom_logo.dart';
 import '../../widgets/bloom_ui.dart';
 
-class SignupScreen extends StatefulWidget {
+class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
 
   @override
-  State<SignupScreen> createState() => _SignupScreenState();
+  ConsumerState<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> {
+class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
+  AuthService get _authService => ref.read(authServiceProvider);
 
   bool _isLoading = false;
-  String _selectedRole = 'user';
 
   @override
   void dispose() {
@@ -60,7 +62,6 @@ class _SignupScreenState extends State<SignupScreen> {
         email: email,
         password: password,
         name: name,
-        role: _selectedRole,
       );
 
       if (!mounted) return;
@@ -69,7 +70,7 @@ class _SignupScreenState extends State<SignupScreen> {
       await Future.delayed(const Duration(milliseconds: 700));
       if (!mounted) return;
 
-      Navigator.pop(context);
+      context.pop();
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
 
@@ -114,7 +115,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => context.pop(),
                     icon: const Icon(
                       Icons.arrow_back_ios_new_rounded,
                       size: 18,
@@ -168,8 +169,6 @@ class _SignupScreenState extends State<SignupScreen> {
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _signup(),
               ),
-              const SizedBox(height: 14),
-              _buildRoleSelector(),
               const SizedBox(height: 16),
               AuthPrimaryButton(
                 label: 'Sign Up',
@@ -188,76 +187,7 @@ class _SignupScreenState extends State<SignupScreen> {
           footer: AuthFooterLink(
             prompt: 'Already have an account? ',
             action: 'Sign In',
-            onTap: () => Navigator.pop(context),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Account type picker. Kept from the original flow so an admin account
-  /// can still be created, but restyled as a segmented control.
-  Widget _buildRoleSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Account Type',
-          style: AppText.sans(
-            size: 13.5,
-            weight: FontWeight.w500,
-            color: AppColors.authInk,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: AppColors.authTrack,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              _roleOption('user', 'Customer'),
-              _roleOption('admin', 'Admin'),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _roleOption(String value, String label) {
-    final selected = _selectedRole == value;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedRole = value),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(vertical: 11),
-          decoration: BoxDecoration(
-            color: selected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 8,
-                      offset: const Offset(0, 1),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: AppText.serif(
-              size: 15,
-              weight: selected ? FontWeight.w600 : FontWeight.w500,
-              color: selected ? AppColors.authInk : AppColors.authMuted,
-            ),
+            onTap: () => context.pop(),
           ),
         ),
       ),

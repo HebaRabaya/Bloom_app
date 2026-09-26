@@ -2,14 +2,18 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/user_model.dart';
 import 'cloudinary_service.dart';
 
 class ProfileService {
-  final FirebaseFirestore _firestore =
-      FirebaseFirestore.instance;
+  ProfileService({
+    FirebaseFirestore? firestore,
+    CloudinaryService? cloudinaryService,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _cloudinaryService = cloudinaryService ?? CloudinaryService();
 
-  final CloudinaryService _cloudinaryService =
-  CloudinaryService();
+  final FirebaseFirestore _firestore;
+  final CloudinaryService _cloudinaryService;
 
   // ============================================================
   // Save Profile
@@ -77,15 +81,21 @@ class ProfileService {
   // Get Profile
   // ============================================================
 
-  Future<
-      DocumentSnapshot<Map<String, dynamic>>>
-  getProfile(
+  Future<UserModel?> getProfile(
       String uid,
       ) async {
-    return await _firestore
+    final snapshot = await _firestore
         .collection('users')
         .doc(uid)
         .get();
+
+    final data = snapshot.data();
+
+    if (!snapshot.exists || data == null) {
+      return null;
+    }
+
+    return UserModel.fromMap(uid, data);
   }
 
   // ============================================================
@@ -94,14 +104,22 @@ class ProfileService {
   // بنستخدمها بشاشة البروفايل حتى أي تعديل يظهر مباشرة.
   // ============================================================
 
-  Stream<DocumentSnapshot<Map<String, dynamic>>>
-  watchProfile(
+  Stream<UserModel?> watchProfile(
       String uid,
       ) {
     return _firestore
         .collection('users')
         .doc(uid)
-        .snapshots();
+        .snapshots()
+        .map((snapshot) {
+      final data = snapshot.data();
+
+      if (!snapshot.exists || data == null) {
+        return null;
+      }
+
+      return UserModel.fromMap(uid, data);
+    });
   }
 
   // ============================================================

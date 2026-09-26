@@ -1,9 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../models/product_model.dart';
+import '../../providers/category_providers.dart';
+import '../../providers/product_providers.dart';
 import '../../services/category_service.dart';
 import '../../services/product_service.dart';
 import '../../theme/app_colors.dart';
@@ -11,23 +15,23 @@ import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_ui.dart';
 
-class AddProductScreen extends StatefulWidget {
+class AddProductScreen extends ConsumerStatefulWidget {
   final ProductModel? product;
 
   const AddProductScreen({super.key, this.product});
 
   @override
-  State<AddProductScreen> createState() => _AddProductScreenState();
+  ConsumerState<AddProductScreen> createState() => _AddProductScreenState();
 }
 
-class _AddProductScreenState extends State<AddProductScreen> {
+class _AddProductScreenState extends ConsumerState<AddProductScreen> {
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _quantityController = TextEditingController();
 
-  final _productService = ProductService();
-  final _categoryService = CategoryService();
+  ProductService get _productService => ref.read(productServiceProvider);
+  CategoryService get _categoryService => ref.read(categoryServiceProvider);
   final _imagePicker = ImagePicker();
 
   String? _selectedCategory;
@@ -140,7 +144,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       );
 
       if (_isEditing) {
-        Navigator.pop(context);
+        context.pop();
         return;
       }
 
@@ -178,7 +182,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 padding: const EdgeInsets.only(left: 16),
                 child: BloomCircleButton(
                   icon: Icons.arrow_back_ios_new_rounded,
-                  onTap: () => Navigator.pop(context),
+                  onTap: () => context.pop(),
                 ),
               ),
               leadingWidth: 62,
@@ -399,8 +403,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
           );
         }
 
-        final names = snapshot.data!.docs
-            .map((document) => document.data()['name']?.toString() ?? '')
+        final names = snapshot.data!
+            .map((category) => category.name)
             .where((name) => name.isNotEmpty)
             .toList();
 

@@ -1,9 +1,10 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'app/router.dart';
 import 'firebase_options.dart';
-import 'screens/splash/splash_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 
@@ -27,12 +28,25 @@ class BloomApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const ProviderScope(
+      child: _BloomAppView(),
+    );
+  }
+}
+
+class _BloomAppView extends ConsumerWidget {
+  const _BloomAppView();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Bloom Flowers',
       theme: AppTheme.light,
       color: AppColors.cream,
-      home: const SplashScreen(),
+      routerConfig: router,
       builder: (context, child) {
         // Keep typography stable if the device font scale is extreme,
         // so cards and buttons never overflow.

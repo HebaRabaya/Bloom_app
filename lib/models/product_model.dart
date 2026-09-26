@@ -1,3 +1,5 @@
+import '../core/utils/parsers.dart';
+
 class ProductModel {
   final String id;
   final String name;
@@ -32,7 +34,7 @@ class ProductModel {
       map['name']?.toString() ?? '',
 
       price:
-      _parseDouble(map['price']),
+      parseDouble(map['price']),
 
       description:
       map['description']?.toString() ?? '',
@@ -41,7 +43,7 @@ class ProductModel {
       map['category']?.toString() ?? '',
 
       quantity:
-      _parseInt(map['quantity']),
+      parseInt(map['quantity']),
 
       imageUrl:
       map['imageUrl']?.toString() ?? '',
@@ -61,39 +63,5 @@ class ProductModel {
       'quantity': quantity,
       'imageUrl': imageUrl,
     };
-  }
-
-  // ============================================================
-  // Parse Double
-  // ============================================================
-
-  static double _parseDouble(
-      dynamic value,
-      ) {
-    if (value is num) {
-      return value.toDouble();
-    }
-
-    return double.tryParse(
-      value?.toString() ?? '',
-    ) ??
-        0;
-  }
-
-  // ============================================================
-  // Parse Int
-  // ============================================================
-
-  static int _parseInt(
-      dynamic value,
-      ) {
-    if (value is num) {
-      return value.toInt();
-    }
-
-    return int.tryParse(
-      value?.toString() ?? '',
-    ) ??
-        0;
   }
 }

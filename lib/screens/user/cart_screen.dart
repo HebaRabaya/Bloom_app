@@ -1,24 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/router.dart';
 import '../../models/cart_model.dart';
+import '../../providers/cart_providers.dart';
 import '../../services/cart_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_ui.dart';
 import '../../widgets/bloom_luxe.dart';
-import 'checkout_screen.dart';
 import 'user_main_screen.dart';
 
-class CartScreen extends StatefulWidget {
+class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({super.key});
 
   @override
-  State<CartScreen> createState() => _CartScreenState();
+  ConsumerState<CartScreen> createState() => _CartScreenState();
 }
 
-class _CartScreenState extends State<CartScreen> {
-  final _cartService = CartService();
+class _CartScreenState extends ConsumerState<CartScreen> {
+  CartService get _cartService => ref.read(cartServiceProvider);
 
   Future<void> _run(Future<void> Function() action) async {
     try {
@@ -65,10 +68,7 @@ class _CartScreenState extends State<CartScreen> {
 
   /// The success screen pops with the tab the customer wants to land on.
   Future<void> _openCheckout() async {
-    final result = await Navigator.push<String>(
-      context,
-      BloomPageRoute(builder: (_) => const CheckoutScreen()),
-    );
+    final result = await context.push<String>(AppRoutes.checkout);
 
     if (!mounted || result == null) return;
 

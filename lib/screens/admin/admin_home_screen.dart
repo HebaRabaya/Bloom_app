@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/router.dart';
 import '../../models/order_model.dart';
 import '../../models/product_model.dart';
+import '../../providers/order_providers.dart';
+import '../../providers/product_providers.dart';
 import '../../services/order_service.dart';
 import '../../services/product_service.dart';
 import '../../theme/app_colors.dart';
@@ -9,19 +14,18 @@ import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_logo.dart';
 import '../../widgets/bloom_ui.dart';
-import 'add_product_screen.dart';
 import 'admin_main_screen.dart';
 
-class AdminHomeScreen extends StatefulWidget {
+class AdminHomeScreen extends ConsumerStatefulWidget {
   const AdminHomeScreen({super.key});
 
   @override
-  State<AdminHomeScreen> createState() => _AdminHomeScreenState();
+  ConsumerState<AdminHomeScreen> createState() => _AdminHomeScreenState();
 }
 
-class _AdminHomeScreenState extends State<AdminHomeScreen> {
-  final _productService = ProductService();
-  final _orderService = OrderService();
+class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
+  ProductService get _productService => ref.read(productServiceProvider);
+  OrderService get _orderService => ref.read(orderServiceProvider);
 
   Future<void> _deleteProduct(ProductModel product) async {
     final confirmed = await showDialog<bool>(
@@ -199,12 +203,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                             child: _AdminProductCard(
                               product: product,
                               onEdit: () {
-                                Navigator.push(
-                                  context,
-                                  BloomPageRoute(
-                                    builder: (_) =>
-                                        AddProductScreen(product: product),
-                                  ),
+                                context.push(
+                                  AppRoutes.adminEditProduct,
+                                  extra: product,
                                 );
                               },
                               onDelete: () => _deleteProduct(product),

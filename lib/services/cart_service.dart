@@ -4,11 +4,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/cart_model.dart';
 
 class CartService {
-  final FirebaseFirestore _firestore =
-      FirebaseFirestore.instance;
+  CartService({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
 
-  final FirebaseAuth _auth =
-      FirebaseAuth.instance;
+  final FirebaseFirestore _firestore;
+
+  final FirebaseAuth _auth;
 
   // ============================================================
   // Current User ID
