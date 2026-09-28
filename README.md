@@ -20,7 +20,7 @@
 
 Customers can browse products, manage favourites and cart, place gift orders, create gift messages, and track their orders. Admins can manage products, inventory, categories, and orders.
 
-## ✨ Highlights
+## ✨ Features
 
 * 🔐 Firebase Authentication
 * 🛍️ Product browsing, search, favourites & cart
@@ -35,7 +35,7 @@ Customers can browse products, manage favourites and cart, place gift orders, cr
 
 ## 🛠️ Tech Stack
 
-**Flutter · Dart · Firebase Auth · Cloud Firestore · Cloudinary · Material 3 · SharedPreferences**
+**Flutter · Dart · Firebase Authentication · Cloud Firestore · Cloudinary · Material 3 · SharedPreferences**
 
 ## 🚀 Run Locally
 
