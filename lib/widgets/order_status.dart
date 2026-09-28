@@ -86,6 +86,44 @@ class OrderStatusInfo {
     return '${date.day} ${months[date.month - 1]} ${date.year} · '
         '$hour:$minute $period';
   }
+
+  static String formatDay(String value) {
+    final raw = value.trim();
+    if (raw.isEmpty) return '';
+
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    final parts = raw.split('-');
+    if (parts.length >= 3) {
+      final year = int.tryParse(parts[0]);
+      final month = int.tryParse(parts[1]);
+      final day = int.tryParse(parts[2]);
+      if (year != null &&
+          month != null &&
+          day != null &&
+          month >= 1 &&
+          month <= 12) {
+        return '$day ${months[month - 1]} $year';
+      }
+    }
+
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+    return '${parsed.day} ${months[parsed.month - 1]} ${parsed.year}';
+  }
 }
 
 class OrderStatusBadge extends StatelessWidget {

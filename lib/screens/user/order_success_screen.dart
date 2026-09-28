@@ -48,23 +48,9 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
     return '#BLOOM${tail.toUpperCase()}';
   }
 
-  String get _deliveryWindow {
-    final now = DateTime.now();
-    final from = now.add(const Duration(hours: 2));
-    final to = now.add(const Duration(hours: 5));
-    return 'Today, ${_time(from)} – ${_time(to)}';
-  }
-
   void _close(String destination) {
     UserMainScreen.of(context)?.goToTab(destination == 'orders' ? 3 : 0);
     context.pop(destination);
-  }
-
-  static String _time(DateTime value) {
-    final hour = value.hour % 12 == 0 ? 12 : value.hour % 12;
-    final minute = value.minute.toString().padLeft(2, '0');
-    final period = value.hour >= 12 ? 'PM' : 'AM';
-    return '$hour:$minute $period';
   }
 
   @override
@@ -190,7 +176,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              _deliveryWindow,
+                              'We will deliver on the date you chose.',
                               style: AppText.sans(
                                 size: 14,
                                 weight: FontWeight.w600,

@@ -93,6 +93,13 @@ final String userName;
 final String userPhone;
 
 final String address;
+final String recipientName;
+final String recipientPhone;
+final String city;
+final String deliveryDate;
+final String deliveryNotes;
+final String giftMessage;
+final String occasion;
 
 final List<OrderItemModel> items;
 
@@ -108,6 +115,13 @@ required this.userId,
 required this.userName,
 required this.userPhone,
 required this.address,
+required this.recipientName,
+required this.recipientPhone,
+required this.city,
+required this.deliveryDate,
+required this.deliveryNotes,
+required this.giftMessage,
+required this.occasion,
 required this.items,
 required this.totalAmount,
 required this.status,
@@ -237,6 +251,27 @@ map['userPhone']?.toString() ?? '',
 address:
 map['address']?.toString() ?? '',
 
+recipientName:
+map['recipientName']?.toString() ?? '',
+
+recipientPhone:
+map['recipientPhone']?.toString() ?? '',
+
+city:
+map['city']?.toString() ?? '',
+
+deliveryDate:
+map['deliveryDate']?.toString() ?? '',
+
+deliveryNotes:
+map['deliveryNotes']?.toString() ?? '',
+
+giftMessage:
+map['giftMessage']?.toString() ?? '',
+
+occasion:
+map['occasion']?.toString() ?? '',
+
 items: orderItems,
 
 totalAmount: total,
@@ -303,5 +338,16 @@ total += item.quantity;
 
 return total;
 }
+
+String get deliveryLocation {
+  final street = address.trim();
+  final area = city.trim();
+  if (street.isEmpty) return area;
+  if (area.isEmpty) return street;
+  return '$street, $area';
+}
+
+bool get hasRecipient => recipientName.trim().isNotEmpty;
+bool get hasGiftMessage => giftMessage.trim().isNotEmpty;
 }
 

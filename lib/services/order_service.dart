@@ -54,6 +54,13 @@ class OrderService {
 
   Future<String> checkout({
     required String address,
+    String recipientName = '',
+    String recipientPhone = '',
+    String city = '',
+    String deliveryDate = '',
+    String deliveryNotes = '',
+    String giftMessage = '',
+    String occasion = '',
   }) async {
     final user =
         _auth.currentUser;
@@ -266,6 +273,20 @@ class OrderService {
             'userPhone': userPhone,
             'address':
             address.trim(),
+            'recipientName':
+            recipientName.trim(),
+            'recipientPhone':
+            recipientPhone.trim(),
+            'city':
+            city.trim(),
+            'deliveryDate':
+            deliveryDate.trim(),
+            'deliveryNotes':
+            deliveryNotes.trim(),
+            'giftMessage':
+            giftMessage.trim(),
+            'occasion':
+            occasion.trim(),
 
             'items': orderItems
                 .map(

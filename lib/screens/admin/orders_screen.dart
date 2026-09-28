@@ -182,11 +182,39 @@ class _AdminOrderCard extends StatelessWidget {
             const SizedBox(height: 6),
             _infoRow(Icons.phone_outlined, order.userPhone),
           ],
+          if (order.hasRecipient) ...[
+            const SizedBox(height: 6),
+            _infoRow(
+              Icons.card_giftcard_outlined,
+              'For ${order.recipientName}',
+            ),
+          ],
+          if (order.recipientPhone.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            _infoRow(Icons.phone_outlined, order.recipientPhone),
+          ],
           const SizedBox(height: 6),
           _infoRow(
             Icons.location_on_outlined,
-            order.address.isEmpty ? 'Address unavailable' : order.address,
+            order.deliveryLocation.isEmpty
+                ? 'Address unavailable'
+                : order.deliveryLocation,
           ),
+          if (order.deliveryDate.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            _infoRow(
+              Icons.event_outlined,
+              OrderStatusInfo.formatDay(order.deliveryDate),
+            ),
+          ],
+          if (order.hasGiftMessage) ...[
+            const SizedBox(height: 6),
+            _infoRow(Icons.mail_outline_rounded, order.giftMessage),
+          ],
+          if (order.deliveryNotes.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            _infoRow(Icons.notes_outlined, order.deliveryNotes),
+          ],
 
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 14),

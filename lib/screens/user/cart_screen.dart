@@ -10,7 +10,6 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_ui.dart';
-import '../../widgets/bloom_luxe.dart';
 import 'user_main_screen.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
@@ -133,16 +132,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                             physics: const BouncingScrollPhysics(
                               parent: AlwaysScrollableScrollPhysics(),
                             ),
-                            itemCount: items.length + 1,
-                            separatorBuilder: (_, index) => index == 0
-                                ? const SizedBox.shrink()
-                                : const SizedBox(height: 12),
+                            itemCount: items.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 12),
                             itemBuilder: (context, index) {
-                              if (index == 0) {
-                                return BloomLivingVase(items: items);
-                              }
-
-                              final item = items[index - 1];
+                              final item = items[index];
 
                               return FadeSlideIn.staggered(
                                 key: ValueKey(item.productId),

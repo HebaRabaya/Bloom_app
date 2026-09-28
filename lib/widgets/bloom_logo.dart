@@ -10,12 +10,16 @@ class BloomMark extends StatelessWidget {
   final double size;
   final Color color;
   final double progress;
+  final double strokeWidthFactor;
+  final double fillOpacity;
 
   const BloomMark({
     super.key,
     this.size = 48,
     this.color = AppColors.roseGold,
     this.progress = 1,
+    this.strokeWidthFactor = 1,
+    this.fillOpacity = 0,
   });
 
   @override
@@ -24,7 +28,12 @@ class BloomMark extends StatelessWidget {
       width: size,
       height: size * 0.78,
       child: CustomPaint(
-        painter: _LotusPainter(color: color, progress: progress),
+        painter: _LotusPainter(
+          color: color,
+          progress: progress,
+          strokeWidthFactor: strokeWidthFactor,
+          fillOpacity: fillOpacity,
+        ),
       ),
     );
   }
@@ -33,8 +42,15 @@ class BloomMark extends StatelessWidget {
 class _LotusPainter extends CustomPainter {
   final Color color;
   final double progress;
+  final double strokeWidthFactor;
+  final double fillOpacity;
 
-  _LotusPainter({required this.color, required this.progress});
+  _LotusPainter({
+    required this.color,
+    required this.progress,
+    required this.strokeWidthFactor,
+    required this.fillOpacity,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -43,9 +59,15 @@ class _LotusPainter extends CustomPainter {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * 0.042
+      ..strokeWidth = size.width * 0.042 * strokeWidthFactor
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
+
+    final fillPaint = fillOpacity <= 0
+        ? null
+        : (Paint()
+            ..color = color.withValues(alpha: fillOpacity)
+            ..style = PaintingStyle.fill);
 
     final unit = size.height;
 
@@ -63,13 +85,11 @@ class _LotusPainter extends CustomPainter {
     for (final petal in petals) {
       canvas.save();
       canvas.rotate(petal[0] * math.pi / 180);
-      canvas.drawPath(
-        _trim(
-          _petalPath(length: unit * petal[1], width: unit * petal[2]),
-          progress,
-        ),
-        paint,
-      );
+      final path = _petalPath(length: unit * petal[1], width: unit * petal[2]);
+      if (fillPaint != null && progress >= 1) {
+        canvas.drawPath(path, fillPaint);
+      }
+      canvas.drawPath(_trim(path, progress), paint);
       canvas.restore();
     }
 
@@ -98,7 +118,10 @@ class _LotusPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_LotusPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.color != color;
+    return oldDelegate.progress != progress ||
+        oldDelegate.color != color ||
+        oldDelegate.strokeWidthFactor != strokeWidthFactor ||
+        oldDelegate.fillOpacity != fillOpacity;
   }
 }
 

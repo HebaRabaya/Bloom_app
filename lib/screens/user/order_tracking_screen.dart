@@ -206,7 +206,6 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               done: stepIndex >= i && stepIndex >= 0,
               active: stepIndex == i,
               isLast: i == OrderStatusInfo.stepLabels.length - 1,
-              delay: Duration(milliseconds: 120 * i),
             ),
         ],
       ),
@@ -279,52 +278,100 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   Widget _buildAddress(OrderModel order) {
     return BloomCard(
       padding: const EdgeInsets.all(16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              color: AppColors.blush,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.location_on_outlined,
-              size: 19,
-              color: AppColors.coral,
-            ),
+          _detailRow(
+            icon: Icons.card_giftcard_outlined,
+            label: 'Recipient',
+            value: order.hasRecipient ? order.recipientName : 'Not provided',
           ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Delivery address',
-                  style: AppText.sans(size: 11.5, color: AppColors.muted),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  order.address.isEmpty ? 'Address unavailable' : order.address,
-                  style: AppText.sans(size: 13, height: 1.6),
-                ),
-              ],
+          if (order.recipientPhone.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _detailRow(
+              icon: Icons.phone_outlined,
+              label: 'Recipient phone',
+              value: order.recipientPhone,
             ),
+          ],
+          const SizedBox(height: 14),
+          _detailRow(
+            icon: Icons.location_on_outlined,
+            label: 'Delivery address',
+            value: order.deliveryLocation.isEmpty
+                ? 'Address unavailable'
+                : order.deliveryLocation,
           ),
+          if (order.deliveryDate.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _detailRow(
+              icon: Icons.event_outlined,
+              label: 'Delivery date',
+              value: OrderStatusInfo.formatDay(order.deliveryDate),
+            ),
+          ],
+          if (order.hasGiftMessage) ...[
+            const SizedBox(height: 14),
+            _detailRow(
+              icon: Icons.mail_outline_rounded,
+              label: 'Gift message',
+              value: order.giftMessage,
+            ),
+          ],
+          if (order.deliveryNotes.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _detailRow(
+              icon: Icons.notes_outlined,
+              label: 'Notes',
+              value: order.deliveryNotes,
+            ),
+          ],
         ],
       ),
     );
   }
+
+  Widget _detailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: const BoxDecoration(
+            color: AppColors.blush,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 19, color: AppColors.coral),
+        ),
+        const SizedBox(width: 13),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: AppText.sans(size: 11.5, color: AppColors.muted),
+              ),
+              const SizedBox(height: 3),
+              Text(value, style: AppText.sans(size: 13, height: 1.6)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-class _TimelineStep extends StatefulWidget {
+class _TimelineStep extends StatelessWidget {
   final String label;
   final IconData icon;
   final bool done;
   final bool active;
   final bool isLast;
-  final Duration delay;
 
   const _TimelineStep({
     required this.label,
@@ -332,216 +379,71 @@ class _TimelineStep extends StatefulWidget {
     required this.done,
     required this.active,
     required this.isLast,
-    required this.delay,
   });
 
   @override
-  State<_TimelineStep> createState() => _TimelineStepState();
-}
-
-class _TimelineStepState extends State<_TimelineStep>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _pulse = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1200),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.active) _pulse.repeat(reverse: true);
-  }
-
-  @override
-  void didUpdateWidget(covariant _TimelineStep oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.active && !_pulse.isAnimating) {
-      _pulse.repeat(reverse: true);
-    } else if (!widget.active && _pulse.isAnimating) {
-      _pulse.stop();
-      _pulse.value = 0;
-    }
-  }
-
-  @override
-  void dispose() {
-    _pulse.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final color = widget.done ? AppColors.forest : AppColors.line;
-    final lineFill = widget.isLast
-        ? 0.0
-        : widget.done && !widget.active
-        ? 1.0
-        : widget.active
-        ? 0.55
-        : 0.0;
+    final color = done ? AppColors.forest : AppColors.line;
 
-    return FadeSlideIn(
-      delay: widget.delay,
-      offsetY: 0,
-      offsetX: -18,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Column(
-              children: [
-                AnimatedBuilder(
-                  animation: _pulse,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: widget.active ? 1 + _pulse.value * 0.08 : 1,
-                      child: child,
-                    );
-                  },
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0.7, end: 1),
-                    duration: const Duration(milliseconds: 700),
-                    curve: Curves.elasticOut,
-                    builder: (context, scale, child) {
-                      return Transform.scale(
-                        scale: widget.done ? scale : 1,
-                        child: child,
-                      );
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 420),
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: widget.done ? AppColors.forest : Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: color, width: 1.6),
-                        boxShadow: widget.active
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.forest.withValues(
-                                    alpha: 0.32,
-                                  ),
-                                  blurRadius: 16,
-                                  spreadRadius: 3,
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Icon(
-                        widget.done ? Icons.check_rounded : widget.icon,
-                        size: 16,
-                        color: widget.done ? Colors.white : AppColors.taupe,
-                      ),
-                    ),
-                  ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 420),
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: done ? AppColors.forest : Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: color, width: 1.6),
                 ),
-                if (!widget.isLast)
-                  Expanded(
-                    child: TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: lineFill),
-                      duration: const Duration(milliseconds: 900),
-                      curve: Curves.easeOutCubic,
-                      builder: (context, value, _) {
-                        return LayoutBuilder(
-                          builder: (context, constraints) {
-                            return Stack(
-                              alignment: Alignment.topCenter,
-                              children: [
-                                Container(
-                                  width: 2,
-                                  height: constraints.maxHeight,
-                                  margin: const EdgeInsets.symmetric(
-                                    vertical: 4,
-                                  ),
-                                  color: AppColors.line,
-                                ),
-                                Align(
-                                  alignment: Alignment.topCenter,
-                                  child: Container(
-                                    width: 3,
-                                    height: (constraints.maxHeight - 8) * value,
-                                    margin: const EdgeInsets.only(top: 4),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.forest,
-                                      borderRadius: BorderRadius.circular(4),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.forest.withValues(
-                                            alpha: 0.35,
-                                          ),
-                                          blurRadius: 8,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                if (widget.active && value > 0.1)
-                                  Positioned(
-                                    top:
-                                        4 +
-                                        (constraints.maxHeight - 8) * value -
-                                        5,
-                                    child: Container(
-                                      width: 10,
-                                      height: 10,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.coral,
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: AppColors.coral.withValues(
-                                              alpha: 0.5,
-                                            ),
-                                            blurRadius: 8,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  top: 7,
-                  bottom: widget.isLast ? 12 : 22,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.label,
-                      style: AppText.sans(
-                        size: 13.5,
-                        weight: widget.active
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: widget.done ? AppColors.ink : AppColors.muted,
-                      ),
-                    ),
-                    if (widget.active)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          'In progress',
-                          style: AppText.sans(size: 11, color: AppColors.coral),
-                        ),
-                      ),
-                  ],
+                child: Icon(
+                  done ? Icons.check_rounded : icon,
+                  size: 16,
+                  color: done ? Colors.white : AppColors.taupe,
                 ),
               ),
+              if (!isLast)
+                Container(
+                  width: 2,
+                  height: 28,
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  color: done && !active ? AppColors.forest : AppColors.line,
+                ),
+            ],
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: AppText.sans(
+                      size: 13.5,
+                      weight: active ? FontWeight.w700 : FontWeight.w500,
+                      color: done ? AppColors.ink : AppColors.muted,
+                    ),
+                  ),
+                  if (active)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        'In progress',
+                        style: AppText.sans(size: 11, color: AppColors.coral),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

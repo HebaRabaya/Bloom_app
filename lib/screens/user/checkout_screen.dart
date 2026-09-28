@@ -9,12 +9,14 @@ import '../../providers/cart_providers.dart';
 import '../../providers/order_providers.dart';
 import '../../providers/profile_providers.dart';
 import '../../services/cart_service.dart';
+import '../../services/gift_message_service.dart';
 import '../../services/order_service.dart';
 import '../../services/profile_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
 import '../../widgets/bloom_ui.dart';
+import '../../widgets/order_status.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -24,29 +26,57 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 }
 
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
+  static const _cities = [
+    'Ramallah',
+    'Bethlehem',
+    'Nablus',
+    'Jerusalem',
+    'Hebron',
+  ];
+
+  final _recipientNameController = TextEditingController();
+  final _recipientPhoneController = TextEditingController();
+  final _cityController = TextEditingController();
   final _addressController = TextEditingController();
+  final _notesController = TextEditingController();
+  final _messageController = TextEditingController();
+  final _writer = GiftMessageService();
+  final _messageKey = GlobalKey();
+
   OrderService get _orderService => ref.read(orderServiceProvider);
   ProfileService get _profileService => ref.read(profileServiceProvider);
   CartService get _cartService => ref.read(cartServiceProvider);
 
   bool _isLoadingAddress = true;
   bool _isPlacingOrder = false;
+  String _occasion = GiftMessageService.occasions.first;
+  String _tone = GiftMessageService.tones.first;
+  DateTime _deliveryDate = DateTime.now();
 
   @override
   void initState() {
     super.initState();
+    _messageController.addListener(_onDraftChanged);
+    _cityController.addListener(_onDraftChanged);
     _loadAddress();
   }
 
   @override
   void dispose() {
+    _messageController.removeListener(_onDraftChanged);
+    _cityController.removeListener(_onDraftChanged);
+    _recipientNameController.dispose();
+    _recipientPhoneController.dispose();
+    _cityController.dispose();
     _addressController.dispose();
+    _notesController.dispose();
+    _messageController.dispose();
     super.dispose();
   }
 
-  // ============================================================
-  // Saved delivery address
-  // ============================================================
+  void _onDraftChanged() {
+    if (mounted) setState(() {});
+  }
 
   Future<void> _loadAddress() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -58,6 +88,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     try {
       final profile = await _profileService.getProfile(user.uid);
+      _recipientNameController.text = profile?.name ?? '';
+      _recipientPhoneController.text = profile?.phone ?? '';
       _addressController.text = profile?.address ?? '';
     } catch (_) {
       if (!mounted) return;
@@ -67,15 +99,26 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
-  // ============================================================
-  // Place order
-  // ============================================================
-
   Future<void> _placeOrder() async {
     FocusScope.of(context).unfocus();
 
+    final recipientName = _recipientNameController.text.trim();
+    final recipientPhone = _recipientPhoneController.text.trim();
+    final city = _cityController.text.trim();
     final address = _addressController.text.trim();
 
+    if (recipientName.isEmpty) {
+      showBloomSnack(context, 'Please enter the recipient\'s name.', isError: true);
+      return;
+    }
+    if (recipientPhone.isEmpty) {
+      showBloomSnack(context, 'Please enter the recipient\'s phone.', isError: true);
+      return;
+    }
+    if (city.isEmpty) {
+      showBloomSnack(context, 'Please enter the delivery city or area.', isError: true);
+      return;
+    }
     if (address.isEmpty) {
       showBloomSnack(
         context,
@@ -95,7 +138,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     try {
       await _profileService.saveAddress(uid: user.uid, address: address);
-      final orderId = await _orderService.checkout(address: address);
+      final orderId = await _orderService.checkout(
+        address: address,
+        recipientName: recipientName,
+        recipientPhone: recipientPhone,
+        city: city,
+        deliveryDate: _isoDate(_deliveryDate),
+        deliveryNotes: _notesController.text.trim(),
+        giftMessage: _messageController.text.trim(),
+        occasion: _occasion,
+      );
 
       if (!mounted) return;
 
@@ -111,6 +163,42 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     } finally {
       if (mounted) setState(() => _isPlacingOrder = false);
     }
+  }
+
+  void _writeMessage() {
+    final message = _writer.write(
+      occasion: _occasion,
+      tone: _tone,
+      recipientName: _recipientNameController.text,
+    );
+    _messageController.value = TextEditingValue(
+      text: message,
+      selection: TextSelection.collapsed(offset: message.length),
+    );
+    setState(() {});
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _messageKey.currentContext;
+      if (target == null || !target.mounted) return;
+      Scrollable.ensureVisible(
+        target,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+        alignment: 0.15,
+      );
+    });
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _deliveryDate.isBefore(today) ? today : _deliveryDate,
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 21)),
+    );
+    if (picked == null) return;
+    setState(() => _deliveryDate = picked);
   }
 
   String _checkoutError(Object error) {
@@ -167,15 +255,25 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                           parent: AlwaysScrollableScrollPhysics(),
                         ),
                         children: [
-                          FadeSlideIn(child: _buildAddressSection()),
+                          FadeSlideIn(child: _buildRecipientSection()),
                           const SizedBox(height: 22),
                           FadeSlideIn(
-                            delay: const Duration(milliseconds: 90),
+                            delay: const Duration(milliseconds: 70),
+                            child: _buildMessageSection(),
+                          ),
+                          const SizedBox(height: 22),
+                          FadeSlideIn(
+                            delay: const Duration(milliseconds: 120),
+                            child: _buildDeliverySection(),
+                          ),
+                          const SizedBox(height: 22),
+                          FadeSlideIn(
+                            delay: const Duration(milliseconds: 160),
                             child: _buildPaymentSection(),
                           ),
                           const SizedBox(height: 22),
                           FadeSlideIn(
-                            delay: const Duration(milliseconds: 150),
+                            delay: const Duration(milliseconds: 200),
                             child: _buildSummarySection(items, total),
                           ),
                         ],
@@ -189,37 +287,163 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     );
   }
 
-  // ============================================================
-  // Sections
-  // ============================================================
-
-  Widget _buildAddressSection() {
+  Widget _buildRecipientSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle('Delivery Address', Icons.location_on_outlined),
+        _sectionTitle('Recipient', Icons.card_giftcard_outlined),
+        const SizedBox(height: 6),
+        Text(
+          'Who should receive the flowers?',
+          style: AppText.sans(size: 12.5, color: AppColors.muted),
+        ),
         const SizedBox(height: 12),
-        BloomCard(
-          padding: const EdgeInsets.all(6),
-          child: TextField(
-            controller: _addressController,
-            maxLines: 3,
-            style: AppText.sans(size: 13.5, height: 1.5),
-            decoration: InputDecoration(
-              filled: false,
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              contentPadding: const EdgeInsets.all(14),
-              hintText: 'Street, building, apartment…\nCity, area and landmark',
-              hintStyle: AppText.sans(
-                size: 13,
-                color: AppColors.muted,
-                height: 1.5,
+        _field(
+          controller: _recipientNameController,
+          label: 'Recipient name',
+          icon: Icons.person_outline_rounded,
+        ),
+        const SizedBox(height: 12),
+        _field(
+          controller: _recipientPhoneController,
+          label: 'Recipient phone',
+          icon: Icons.phone_outlined,
+          keyboardType: TextInputType.phone,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDeliverySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('Delivery', Icons.local_shipping_outlined),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final city in _cities)
+              BloomChip(
+                label: city,
+                selected: _cityController.text.trim() == city,
+                onTap: () => setState(() => _cityController.text = city),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _field(
+          controller: _cityController,
+          label: 'City / area',
+          icon: Icons.map_outlined,
+        ),
+        const SizedBox(height: 12),
+        _field(
+          controller: _addressController,
+          label: 'Street, building, landmark',
+          icon: Icons.location_on_outlined,
+          maxLines: 2,
+        ),
+        const SizedBox(height: 12),
+        Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          child: InkWell(
+            onTap: _pickDate,
+            borderRadius: BorderRadius.circular(18),
+            child: InputDecorator(
+              decoration: const InputDecoration(
+                labelText: 'Delivery date',
+                prefixIcon: Icon(Icons.event_outlined, size: 19),
+              ),
+              child: Text(
+                OrderStatusInfo.formatDay(_isoDate(_deliveryDate)),
+                style: AppText.sans(size: 13.5),
               ),
             ),
           ),
         ),
+        const SizedBox(height: 12),
+        _field(
+          controller: _notesController,
+          label: 'Delivery notes (optional)',
+          icon: Icons.notes_outlined,
+          maxLines: 2,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMessageSection() {
+    final hasMessage = _messageController.text.trim().isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('Gift message', Icons.mail_outline_rounded),
+        const SizedBox(height: 6),
+        Text(
+          'Add a card, or let Bloom write one for you.',
+          style: AppText.sans(size: 12.5, color: AppColors.muted),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final occasion in GiftMessageService.occasions)
+              BloomChip(
+                label: occasion,
+                selected: occasion == _occasion,
+                onTap: () => setState(() => _occasion = occasion),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final tone in GiftMessageService.tones)
+              BloomChip(
+                label: tone,
+                selected: tone == _tone,
+                onTap: () => setState(() => _tone = tone),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _writeMessage,
+            icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+            label: Text(hasMessage ? 'Write another' : 'Write with Bloom'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        BloomCard(
+          key: _messageKey,
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            hasMessage
+                ? _messageController.text
+                : 'Press Write with Bloom and the card message appears here. You can edit it afterwards.',
+            style: hasMessage
+                ? AppText.serif(size: 18, height: 1.35)
+                : AppText.sans(size: 13, color: AppColors.muted, height: 1.5),
+          ),
+        ),
+        if (hasMessage) ...[
+          const SizedBox(height: 12),
+          _field(
+            controller: _messageController,
+            label: 'Edit the message',
+            icon: Icons.edit_outlined,
+            maxLines: 4,
+          ),
+        ],
       ],
     );
   }
@@ -400,6 +624,31 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     );
   }
 
+  Widget _field({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      style: AppText.sans(size: 13.5),
+      decoration: InputDecoration(
+        labelText: label,
+        alignLabelWithHint: maxLines > 1,
+        prefixIcon: maxLines > 1
+            ? Padding(
+                padding: EdgeInsets.only(bottom: 18.0 * (maxLines - 1)),
+                child: Icon(icon, size: 19),
+              )
+            : Icon(icon, size: 19),
+      ),
+    );
+  }
+
   Widget _sectionTitle(String title, IconData icon) {
     return Row(
       children: [
@@ -425,6 +674,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         ),
       ],
     );
+  }
+
+  static String _isoDate(DateTime value) {
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    return '${value.year}-$month-$day';
   }
 
   static String _money(double value) {

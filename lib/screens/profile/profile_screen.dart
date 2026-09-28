@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
+import '../../config/app_config.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/profile_providers.dart';
+import '../../services/support_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bloom_animations.dart';
@@ -251,6 +253,8 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   void _showSupport(BuildContext context) {
+    final support = SupportService();
+
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -272,13 +276,22 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              _contactRow(Icons.mail_outline_rounded, 'care@bloomflowers.app'),
-              const SizedBox(height: 12),
-              _contactRow(Icons.phone_outlined, '+970 59 000 0000'),
+              _contactRow(
+                icon: Icons.chat_rounded,
+                value: 'Chat on WhatsApp',
+                onTap: () => _openSupport(sheetContext, support.openWhatsApp),
+              ),
               const SizedBox(height: 12),
               _contactRow(
-                Icons.chat_bubble_outline_rounded,
-                'Live chat inside the app — coming soon',
+                icon: Icons.phone_outlined,
+                value: AppConfig.supportPhoneDisplay,
+                onTap: () => _openSupport(sheetContext, support.openPhone),
+              ),
+              const SizedBox(height: 12),
+              _contactRow(
+                icon: Icons.mail_outline_rounded,
+                value: AppConfig.supportEmail,
+                onTap: () => _openSupport(sheetContext, support.openEmail),
               ),
             ],
           ),
@@ -287,21 +300,52 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _contactRow(IconData icon, String value) {
-    return Row(
-      children: [
-        Container(
-          width: 38,
-          height: 38,
-          decoration: const BoxDecoration(
-            color: AppColors.blush,
-            shape: BoxShape.circle,
+  Future<void> _openSupport(
+    BuildContext context,
+    Future<void> Function() action,
+  ) async {
+    try {
+      await action();
+    } catch (_) {
+      if (!context.mounted) return;
+      showBloomSnack(context, 'Unable to open this right now.', isError: true);
+    }
+  }
+
+  Widget _contactRow({
+    required IconData icon,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: const BoxDecoration(
+                  color: AppColors.blush,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 17, color: AppColors.coral),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Text(value, style: AppText.sans(size: 13))),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 18,
+                color: AppColors.taupe,
+              ),
+            ],
           ),
-          child: Icon(icon, size: 17, color: AppColors.coral),
         ),
-        const SizedBox(width: 12),
-        Expanded(child: Text(value, style: AppText.sans(size: 13))),
-      ],
+      ),
     );
   }
 

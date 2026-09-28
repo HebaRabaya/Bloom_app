@@ -61,6 +61,31 @@ void main() {
     expect(await backend.cartCount(), 0);
   });
 
+  test('checkout stores gift delivery details on the order', () async {
+    await backend.seedProduct(id: 'p1', quantity: 5, price: 40);
+    await backend.seedCartItem(productId: 'p1', quantity: 1, productPrice: 40);
+
+    final orderId = await backend.orders.checkout(
+      address: 'Al Manara',
+      recipientName: 'Sara',
+      recipientPhone: '0591111111',
+      city: 'Ramallah',
+      deliveryDate: '2026-09-30',
+      deliveryNotes: 'Leave with the doorman',
+      giftMessage: 'Happy birthday, Sara.',
+      occasion: 'Birthday',
+    );
+    final order = await backend.order(orderId);
+
+    expect(order?['recipientName'], 'Sara');
+    expect(order?['recipientPhone'], '0591111111');
+    expect(order?['city'], 'Ramallah');
+    expect(order?['deliveryDate'], '2026-09-30');
+    expect(order?['deliveryNotes'], 'Leave with the doorman');
+    expect(order?['giftMessage'], 'Happy birthday, Sara.');
+    expect(order?['occasion'], 'Birthday');
+  });
+
   test('checkout refuses when stock is lower than the cart quantity', () async {
     await backend.seedProduct(id: 'p1', quantity: 1);
     await backend.seedCartItem(productId: 'p1', quantity: 2);

@@ -20,4 +20,14 @@ class AppConfig {
     'CLOUDINARY_UPLOAD_PRESET',
     defaultValue: 'bloom_profiles',
   );
+
+  static const String whatsappNumber = String.fromEnvironment(
+    'BLOOM_WHATSAPP',
+    defaultValue: '970590000000',
+  );
+
+  static const String supportPhoneDisplay = '+970 59 000 0000';
+  static const String supportEmail = 'care@bloomflowers.app';
+  static const String whatsappGreeting =
+      'Hi Bloom, I have a question about an order.';
 }

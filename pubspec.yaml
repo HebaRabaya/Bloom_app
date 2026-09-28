@@ -47,6 +47,7 @@ dependencies:
   http: ^1.5.0
   flutter_riverpod: ^2.6.1
   go_router: ^14.8.1
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -58,6 +59,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
   fake_cloud_firestore: ^4.2.0
   firebase_auth_mocks: ^0.15.2
 
@@ -118,3 +120,13 @@ flutter_native_splash:
     android_12:
       color: "#C4B49A"
       icon_background_color: "#C4B49A"
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/app_icon.png
+  adaptive_icon_background: "#FDF8F0"
+  adaptive_icon_foreground: assets/branding/app_icon_foreground.png
+  adaptive_icon_foreground_inset: 8
+  remove_alpha_ios: true
+  min_sdk_android: 21
